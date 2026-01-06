@@ -176,13 +176,13 @@ func TestParseInvalidLeapDays(t *testing.T) {
 // TestParseThaiMonthNames tests parsing Thai month names
 func TestParseThaiMonthNames(t *testing.T) {
 	tests := []struct {
-		name         string
-		layout       string
-		value        string
-		era          *Era
-		expectMonth  time.Month
-		expectYear   int
-		description  string
+		name        string
+		layout      string
+		value       string
+		era         *Era
+		expectMonth time.Month
+		expectYear  int
+		description string
 	}{
 		{
 			"Thai January full",
@@ -296,13 +296,13 @@ func TestParseThaiDayNames(t *testing.T) {
 // TestParseBEYearConversion tests BE year conversion during parsing
 func TestParseBEYearConversion(t *testing.T) {
 	tests := []struct {
-		name           string
-		layout         string
-		value          string
-		era            *Era
-		expectYearCE   int
-		expectEra      *Era
-		description    string
+		name         string
+		layout       string
+		value        string
+		era          *Era
+		expectYearCE int
+		expectEra    *Era
+		description  string
 	}{
 		{
 			"BE 2567 to CE 2024",
@@ -552,13 +552,13 @@ func TestParseThaiInLocationAutoDetect(t *testing.T) {
 // TestParseErrorHandling tests error handling
 func TestParseErrorHandling(t *testing.T) {
 	tests := []struct {
-		name            string
-		layout          string
-		value           string
-		era             *Era
-		expectError     bool
-		expectParseErr  bool
-		description     string
+		name           string
+		layout         string
+		value          string
+		era            *Era
+		expectError    bool
+		expectParseErr bool
+		description    string
 	}{
 		{
 			"Invalid format",
