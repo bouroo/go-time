@@ -31,7 +31,7 @@ go get github.com/bouroo/go-time
 import (
     "fmt"
     "time"
-    "github.com/bouroo/go-time/gotime"
+    "github.com/bouroo/go-time"
 )
 
 // Create a standard time
@@ -50,11 +50,11 @@ beTime := gotime.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC).InEra(gotime.BE())
 
 // Format with Thai month names
 thai := beTime.FormatLocale(gotime.LocaleThTH, "02 January 2006")
-// Output: "29 กุมภาพันธ์ 2567"
+// Output: "2 มกราคม 2549"
 
 // Format day of week in Thai
 dayName := beTime.FormatLocale(gotime.LocaleThTH, "Monday")
-// Output: "วันพฤหัสบดี"
+// Output: "วันจันทร์"
 ```
 
 ### Parsing Thai Dates
