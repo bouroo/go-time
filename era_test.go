@@ -8,17 +8,17 @@ import (
 // TestEraConversionRealWorld tests era conversions with real-world scenarios
 func TestEraConversionRealWorld(t *testing.T) {
 	tests := []struct {
-		name          string
-		ceYear        int
+		name           string
+		ceYear         int
 		expectedBEYear int
-		description   string
+		description    string
 	}{
 		// Historical dates
 		{"Buddhism founding (543 BC/CE equivalent)", 1, 544, "Year 1 CE converts to BE 544"},
 		{"Thai calendar start (543 BC)", 1, 544, "BE epoch offset by 543 years"},
 
 		// Current era
-		{"Modern date 2024", 2024, 2567, "Current AD year to BE"},
+		{"Modern date 2024", 2024, 2567, "Current CE year to BE"},
 		{"Modern date 2000", 2000, 2543, "Y2K in both eras"},
 
 		// Century boundaries (leap year edge cases)
@@ -109,9 +109,9 @@ func TestLeapYearDetectionCEEra(t *testing.T) {
 // TestLeapYearDetectionBEEra tests that leap year is determined by CE year
 func TestLeapYearDetectionBEEra(t *testing.T) {
 	tests := []struct {
-		ceYear     int
-		beYear     int
-		isLeap     bool
+		ceYear      int
+		beYear      int
+		isLeap      bool
 		description string
 	}{
 		// BE 2567 is CE 2024 (leap)
@@ -241,11 +241,11 @@ func TestEraStrings(t *testing.T) {
 // TestEraEdgeCasesYearBoundaries tests year boundaries and edge cases
 func TestEraEdgeCasesYearBoundaries(t *testing.T) {
 	tests := []struct {
-		name         string
-		ceYear       int
-		beYear       int
-		isLeapCE     bool
-		description  string
+		name        string
+		ceYear      int
+		beYear      int
+		isLeapCE    bool
+		description string
 	}{
 		{"Year 1 CE to BE", 1, 544, false, "Year 1 (not leap)"},
 		{"Year 0 CE to BE", 0, 543, true, "Year zero (divisible by 400, is leap)"},

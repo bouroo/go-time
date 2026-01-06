@@ -44,7 +44,7 @@ func init() {
 }
 
 // CE returns the Common Era (CE) era instance. Common Era is the
-// standard calendar system used internationally, equivalent to AD (Anno Domini).
+// standard calendar system used internationally, equivalent to CE (Anno Domini).
 func CE() *Era {
 	return ce
 }

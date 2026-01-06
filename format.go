@@ -208,9 +208,9 @@ func replaceYearInFormatted(formatted string, eraYear int) string {
 
 	result := yearRegex.ReplaceAllString(formatted, yearStr)
 
-	// Get current AD year's last 2 digits to match against the formatted output
-	currentADYear := time.Now().Year()
-	currentShortYear := fmt.Sprintf("%02d", currentADYear%100)
+	// Get current CE year's last 2 digits to match against the formatted output
+	currentCEYear := time.Now().Year()
+	currentShortYear := fmt.Sprintf("%02d", currentCEYear%100)
 
 	result = shortYearRegex.ReplaceAllStringFunc(result, func(match string) string {
 		if match == currentShortYear {

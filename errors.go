@@ -18,7 +18,7 @@ type ParseError struct {
 // Error returns a human-readable description of the parse error,
 // including the input, layout, era, and original error message.
 func (e *ParseError) Error() string {
-	eraStr := "AD"
+	eraStr := "CE"
 	if e.Era != nil {
 		eraStr = e.Era.String()
 	}

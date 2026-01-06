@@ -18,17 +18,17 @@ func TestLeapDayHandlingCoreRealWorld(t *testing.T) {
 		reason         string
 	}{
 		// Valid leap days
-		{"Leap day 2024 AD", 2024, 2, 29, true, 2567, "2024 is divisible by 4"},
-		{"Leap day 2020 AD", 2020, 2, 29, true, 2563, "2020 is divisible by 4"},
-		{"Leap day 2000 AD", 2000, 2, 29, true, 2543, "2000 is divisible by 400"},
-		{"Leap day 1996 AD", 1996, 2, 29, true, 2539, "1996 is divisible by 4"},
-		{"Leap day 2400 AD", 2400, 2, 29, true, 2943, "2400 is divisible by 400"},
+		{"Leap day 2024 CE", 2024, 2, 29, true, 2567, "2024 is divisible by 4"},
+		{"Leap day 2020 CE", 2020, 2, 29, true, 2563, "2020 is divisible by 4"},
+		{"Leap day 2000 CE", 2000, 2, 29, true, 2543, "2000 is divisible by 400"},
+		{"Leap day 1996 CE", 1996, 2, 29, true, 2539, "1996 is divisible by 4"},
+		{"Leap day 2400 CE", 2400, 2, 29, true, 2943, "2400 is divisible by 400"},
 
 		// Invalid leap days (non-leap years)
 		{"Feb 29 in non-leap 2023", 2023, 2, 29, false, 0, "2023 is not divisible by 4"},
 		{"Feb 29 in non-leap 2100", 2100, 2, 29, false, 0, "2100 is century but not divisible by 400"},
 		{"Feb 29 in non-leap 1900", 1900, 2, 29, false, 0, "1900 is century but not divisible by 400"},
-		{"Feb 29 in year 1 AD", 1, 2, 29, false, 0, "Year 1 is not leap"},
+		{"Feb 29 in year 1 CE", 1, 2, 29, false, 0, "Year 1 is not leap"},
 
 		// Non-leap February dates (always valid)
 		{"Feb 28 in 2023", 2023, 2, 28, true, 2566, "Feb 28 always valid"},
@@ -88,7 +88,7 @@ func TestLeapDayPreservationAcrossEras(t *testing.T) {
 		reason        string
 	}{
 		// Leap day preservation
-		{"2024 leap day to BE", 2024, 2, 29, 29, "Leap day preserved in both AD and BE"},
+		{"2024 leap day to BE", 2024, 2, 29, 29, "Leap day preserved in both CE and BE"},
 		{"2020 leap day to BE", 2020, 2, 29, 29, "2020 leap day in both eras"},
 		{"2000 leap day to BE", 2000, 2, 29, 29, "Y2K leap day preserved"},
 		{"1996 leap day to BE", 1996, 2, 29, 29, "1996 leap day preserved"},
