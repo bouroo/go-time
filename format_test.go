@@ -111,13 +111,13 @@ func TestFormatThaiWeekdays(t *testing.T) {
 		thaiName    string
 		englishName string
 	}{
-		{time.Monday, "วันจันทร์", "Monday"},
-		{time.Tuesday, "วันอังคาร", "Tuesday"},
-		{time.Wednesday, "วันพุธ", "Wednesday"},
-		{time.Thursday, "วันพฤหัสบดี", "Thursday"},
-		{time.Friday, "วันศุกร์", "Friday"},
-		{time.Saturday, "วันเสาร์", "Saturday"},
-		{time.Sunday, "วันอาทิตย์", "Sunday"},
+		{time.Monday, "จันทร์", "Monday"},
+		{time.Tuesday, "อังคาร", "Tuesday"},
+		{time.Wednesday, "พุธ", "Wednesday"},
+		{time.Thursday, "พฤหัสบดี", "Thursday"},
+		{time.Friday, "ศุกร์", "Friday"},
+		{time.Saturday, "เสาร์", "Saturday"},
+		{time.Sunday, "อาทิตย์", "Sunday"},
 	}
 
 	for _, td := range thaiDays {

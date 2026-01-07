@@ -256,7 +256,7 @@ func TestParseThaiDayNames(t *testing.T) {
 		{
 			"Thai Monday",
 			"Monday, 02 January 2006",
-			"วันจันทร์, 15 มกราคม 2024",
+			"จันทร์, 15 มกราคม 2024",
 			CE(),
 			time.Monday,
 			"Monday in Thai",
@@ -264,7 +264,7 @@ func TestParseThaiDayNames(t *testing.T) {
 		{
 			"Thai Friday",
 			"Monday, 02 January 2006",
-			"วันศุกร์, 12 มกราคม 2567",
+			"ศุกร์, 12 มกราคม 2567",
 			BE(),
 			time.Friday,
 			"Friday in Thai with BE",
@@ -272,7 +272,7 @@ func TestParseThaiDayNames(t *testing.T) {
 		{
 			"Thai Sunday",
 			"Monday, 02 January 2006",
-			"วันอาทิตย์, 07 มกราคม 2024",
+			"อาทิตย์, 07 มกราคม 2024",
 			CE(),
 			time.Sunday,
 			"Sunday in Thai",

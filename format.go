@@ -89,13 +89,13 @@ var shortMonthNames = map[string]string{
 }
 
 var dayNames = map[string]string{
-	"Monday":    "วันจันทร์",
-	"Tuesday":   "วันอังคาร",
-	"Wednesday": "วันพุธ",
-	"Thursday":  "วันพฤหัสบดี",
-	"Friday":    "วันศุกร์",
-	"Saturday":  "วันเสาร์",
-	"Sunday":    "วันอาทิตย์",
+	"Monday":    "จันทร์",
+	"Tuesday":   "อังคาร",
+	"Wednesday": "พุธ",
+	"Thursday":  "พฤหัสบดี",
+	"Friday":    "ศุกร์",
+	"Saturday":  "เสาร์",
+	"Sunday":    "อาทิตย์",
 }
 
 var shortDayNames = map[string]string{
@@ -139,13 +139,13 @@ var thaiToEnglishShortMonthNames = map[string]string{
 }
 
 var thaiToEnglishDayNames = map[string]string{
-	"วันจันทร์":   "Monday",
-	"วันอังคาร":   "Tuesday",
-	"วันพุธ":      "Wednesday",
-	"วันพฤหัสบดี": "Thursday",
-	"วันศุกร์":    "Friday",
-	"วันเสาร์":    "Saturday",
-	"วันอาทิตย์":  "Sunday",
+	"จันทร์":   "Monday",
+	"อังคาร":   "Tuesday",
+	"พุธ":      "Wednesday",
+	"พฤหัสบดี": "Thursday",
+	"ศุกร์":    "Friday",
+	"เสาร์":    "Saturday",
+	"อาทิตย์":  "Sunday",
 }
 
 var thaiToEnglishShortDayNames = map[string]string{
