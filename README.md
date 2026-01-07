@@ -54,7 +54,7 @@ thai := beTime.FormatLocale(gotime.LocaleThTH, "02 January 2006")
 
 // Format day of week in Thai
 dayName := beTime.FormatLocale(gotime.LocaleThTH, "Monday")
-// Output: "วันจันทร์"
+// Output: "จันทร์"
 ```
 
 ### Parsing Thai Dates
@@ -114,13 +114,13 @@ The library recognizes all Thai calendar components:
 
 | English    | Thai Full    | Thai Short |
 |------------|--------------|------------|
-| Monday     | วันจันทร์      | จ.         |
-| Tuesday    | วันอังคาร     | อ.         |
-| Wednesday  | วันพุธ        | พ.         |
-| Thursday   | วันพฤหัสบดี    | พฤ.        |
-| Friday     | วันศุกร์       | ศ.         |
-| Saturday   | วันเสาร์       | ส.         |
-| Sunday     | วันอาทิตย์     | อา.        |
+| Monday     | จันทร์      | จ.         |
+| Tuesday    | อังคาร     | อ.         |
+| Wednesday  | พุธ        | พ.         |
+| Thursday   | พฤหัสบดี    | พฤ.        |
+| Friday     | ศุกร์       | ศ.         |
+| Saturday   | เสาร์       | ส.         |
+| Sunday     | อาทิตย์     | อา.        |
 
 ## API Reference
 
