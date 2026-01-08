@@ -30,6 +30,10 @@ type EraCache struct {
 // cacheKey represents a unique cache entry key combining CE year and era pointer.
 // Using unsafe.Pointer allows using Era pointers as map keys while maintaining
 // performance and correctness since Era instances are immutable.
+//
+// #nosec G103 - Using unsafe.Pointer for pointer-to-integer conversion in map keys.
+// This is safe because Era pointers are never dereferenced and Era instances are
+// immutable once created. The pointer value is only used as an identity key.
 type cacheKey struct {
 	ceYear int64
 	era    unsafe.Pointer // *Era (from gotime package)
@@ -77,6 +81,9 @@ func NewEraCache(maxSize int) *EraCache {
 // Get retrieves the era year for the given CE year and era from the cache.
 // Returns the cached era year and true if found, or 0 and false if not found.
 // The era parameter should be an *Era pointer from the gotime package.
+//
+// #nosec G103 - era parameter is an unsafe.Pointer to *Era. Safe because Era
+// instances are immutable and pointer is only used as identity key, not dereferenced.
 func (ec *EraCache) Get(ceYear int, era unsafe.Pointer) (int, bool) {
 	key := cacheKey{
 		ceYear: int64(ceYear),
@@ -96,6 +103,9 @@ func (ec *EraCache) Get(ceYear int, era unsafe.Pointer) (int, bool) {
 // Set stores the era year for the given CE year and era in the cache.
 // If the cache is at capacity, the least recently used entry is evicted.
 // The era parameter should be an *Era pointer from the gotime package.
+//
+// #nosec G103 - era parameter is an unsafe.Pointer to *Era. Safe because Era
+// instances are immutable and pointer is only used as identity key, not dereferenced.
 func (ec *EraCache) Set(ceYear int, era unsafe.Pointer, eraYear int) {
 	key := cacheKey{
 		ceYear: int64(ceYear),

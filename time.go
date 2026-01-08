@@ -91,12 +91,14 @@ func (t Time) Year() int {
 	ceYear := t.Time.Year()
 
 	// Try cache first for non-CE eras
+	//nolint:gosec
 	if eraYear, ok := globalEraCache.Get(ceYear, unsafe.Pointer(era)); ok {
 		return eraYear
 	}
 
 	// Calculate and cache the result
 	eraYear := era.FromCE(ceYear)
+	//nolint:gosec
 	globalEraCache.Set(ceYear, unsafe.Pointer(era), eraYear)
 	return eraYear
 }
@@ -195,6 +197,7 @@ func (t Time) Format(layout string) string {
 	}
 
 	// Try cache first for non-CE eras
+	//nolint:gosec
 	if eraYear, ok := globalEraCache.Get(ceYear, unsafe.Pointer(era)); ok {
 		formatted := t.Time.Format(layout)
 		return replaceYearInFormatted(formatted, eraYear)
@@ -202,6 +205,7 @@ func (t Time) Format(layout string) string {
 
 	// Calculate and cache
 	eraYear := era.FromCE(ceYear)
+	//nolint:gosec
 	globalEraCache.Set(ceYear, unsafe.Pointer(era), eraYear)
 
 	formatted := t.Time.Format(layout)

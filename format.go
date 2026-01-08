@@ -50,10 +50,12 @@ func (t Time) FormatLocale(locale string, layout string) string {
 	// Try cache first for non-CE eras
 	var eraYear int
 	if era != CE() {
+		//nolint:gosec
 		if cachedYear, ok := globalEraCache.Get(ceYear, unsafe.Pointer(era)); ok {
 			eraYear = cachedYear
 		} else {
 			eraYear = era.FromCE(ceYear)
+			//nolint:gosec
 			globalEraCache.Set(ceYear, unsafe.Pointer(era), eraYear)
 		}
 	}
