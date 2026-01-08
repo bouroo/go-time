@@ -1,9 +1,9 @@
-package gotime
+package time
 
 import (
 	"strings"
 	"testing"
-	"time"
+	stdtime "time"
 )
 
 // TestFormatThaiLeapDay tests Thai locale formatting of leap days
@@ -46,7 +46,7 @@ func TestFormatThaiLeapDay(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tm := Date(tt.ceYear, tt.month, tt.day, 12, 30, 45, 0, time.UTC)
+			tm := Date(tt.ceYear, tt.month, tt.day, 12, 30, 45, 0, stdtime.UTC)
 			beTime := tm.InEra(BE())
 
 			result := beTime.FormatLocale(LocaleThTH, tt.layout)
@@ -70,28 +70,28 @@ func TestFormatThaiLeapDay(t *testing.T) {
 // TestFormatThaiMonthNames tests all Thai month names
 func TestFormatThaiMonthNames(t *testing.T) {
 	thaiMonths := []struct {
-		month    time.Month
+		month    stdtime.Month
 		thaiName string
 		english  string
 	}{
-		{time.January, "มกราคม", "January"},
-		{time.February, "กุมภาพันธ์", "February"},
-		{time.March, "มีนาคม", "March"},
-		{time.April, "เมษายน", "April"},
-		{time.May, "พฤษภาคม", "May"},
-		{time.June, "มิถุนายน", "June"},
-		{time.July, "กรกฎาคม", "July"},
-		{time.August, "สิงหาคม", "August"},
-		{time.September, "กันยายน", "September"},
-		{time.October, "ตุลาคม", "October"},
-		{time.November, "พฤศจิกายน", "November"},
-		{time.December, "ธันวาคม", "December"},
+		{stdtime.January, "มกราคม", "January"},
+		{stdtime.February, "กุมภาพันธ์", "February"},
+		{stdtime.March, "มีนาคม", "March"},
+		{stdtime.April, "เมษายน", "April"},
+		{stdtime.May, "พฤษภาคม", "May"},
+		{stdtime.June, "มิถุนายน", "June"},
+		{stdtime.July, "กรกฎาคม", "July"},
+		{stdtime.August, "สิงหาคม", "August"},
+		{stdtime.September, "กันยายน", "September"},
+		{stdtime.October, "ตุลาคม", "October"},
+		{stdtime.November, "พฤศจิกายน", "November"},
+		{stdtime.December, "ธันวาคม", "December"},
 	}
 
 	for _, monthData := range thaiMonths {
 		t.Run(monthData.english, func(t *testing.T) {
 			// Create a date in this month
-			tm := Date(2024, int(monthData.month), 15, 12, 0, 0, 0, time.UTC)
+			tm := Date(2024, int(monthData.month), 15, 12, 0, 0, 0, stdtime.UTC)
 			beTime := tm.InEra(BE())
 
 			// Format in Thai locale
@@ -107,17 +107,17 @@ func TestFormatThaiMonthNames(t *testing.T) {
 // TestFormatThaiWeekdays tests Thai day names
 func TestFormatThaiWeekdays(t *testing.T) {
 	thaiDays := []struct {
-		weekday     time.Weekday
+		weekday     stdtime.Weekday
 		thaiName    string
 		englishName string
 	}{
-		{time.Monday, "จันทร์", "Monday"},
-		{time.Tuesday, "อังคาร", "Tuesday"},
-		{time.Wednesday, "พุธ", "Wednesday"},
-		{time.Thursday, "พฤหัสบดี", "Thursday"},
-		{time.Friday, "ศุกร์", "Friday"},
-		{time.Saturday, "เสาร์", "Saturday"},
-		{time.Sunday, "อาทิตย์", "Sunday"},
+		{stdtime.Monday, "จันทร์", "Monday"},
+		{stdtime.Tuesday, "อังคาร", "Tuesday"},
+		{stdtime.Wednesday, "พุธ", "Wednesday"},
+		{stdtime.Thursday, "พฤหัสบดี", "Thursday"},
+		{stdtime.Friday, "ศุกร์", "Friday"},
+		{stdtime.Saturday, "เสาร์", "Saturday"},
+		{stdtime.Sunday, "อาทิตย์", "Sunday"},
 	}
 
 	for _, td := range thaiDays {
@@ -125,9 +125,9 @@ func TestFormatThaiWeekdays(t *testing.T) {
 			// Find a date that falls on this weekday
 			// Search in January 2024
 			for day := 1; day <= 31; day++ {
-				tm := time.Date(2024, 1, day, 12, 0, 0, 0, time.UTC)
+				tm := stdtime.Date(2024, 1, day, 12, 0, 0, 0, stdtime.UTC)
 				if tm.Weekday() == td.weekday {
-					gotTime := Date(2024, 1, day, 12, 0, 0, 0, time.UTC)
+					gotTime := Date(2024, 1, day, 12, 0, 0, 0, stdtime.UTC)
 					beTime := gotTime.InEra(BE())
 					result := beTime.FormatLocale(LocaleThTH, "Monday")
 
@@ -159,7 +159,7 @@ func TestFormatEnUSLeapDay(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tm := Date(tt.ceYear, tt.month, tt.day, 12, 30, 45, 0, time.UTC)
+			tm := Date(tt.ceYear, tt.month, tt.day, 12, 30, 45, 0, stdtime.UTC)
 			beTime := tm.InEra(BE())
 
 			result := beTime.FormatLocale(LocaleEnUS, "January 02, 2006")
@@ -182,7 +182,7 @@ func TestFormatEnUSLeapDay(t *testing.T) {
 
 // TestFormatCENotAffectedByLocale tests CE times are not affected by Thai locale
 func TestFormatCENotAffectedByLocale(t *testing.T) {
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 
 	// Format in Thai locale
 	thaiResult := tm.FormatLocale(LocaleThTH, "02 January 2006")
@@ -202,7 +202,7 @@ func TestFormatCENotAffectedByLocale(t *testing.T) {
 
 // TestFormatDefaultLocale tests default locale formatting
 func TestFormatDefaultLocale(t *testing.T) {
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 
 	// Default locale should show BE year but English month names
@@ -233,7 +233,7 @@ func TestFormatAllYearVariations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tm := Date(tt.year, 2, 29, 12, 30, 45, 0, time.UTC)
+			tm := Date(tt.year, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 			beTime := tm.InEra(BE())
 
 			result := beTime.FormatLocale(LocaleEnUS, tt.layout)
@@ -248,7 +248,7 @@ func TestFormatAllYearVariations(t *testing.T) {
 
 // TestFormatLeapDayPreserved tests that Feb 29 appears correctly in all formats
 func TestFormatLeapDayPreserved(t *testing.T) {
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 
 	layouts := []string{
@@ -291,7 +291,7 @@ func TestFormatYearConversionAccuracy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(rune(tt.ceYear)), func(t *testing.T) {
-			tm := Date(tt.ceYear, 1, 1, 0, 0, 0, 0, time.UTC)
+			tm := Date(tt.ceYear, 1, 1, 0, 0, 0, 0, stdtime.UTC)
 			beTime := tm.InEra(BE())
 
 			result := beTime.FormatLocale(LocaleEnUS, tt.layout)
@@ -305,7 +305,7 @@ func TestFormatYearConversionAccuracy(t *testing.T) {
 
 // TestFormatConsistency tests that Format() and FormatLocale() are consistent
 func TestFormatConsistency(t *testing.T) {
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 
 	// Both methods should show BE year
@@ -346,7 +346,7 @@ func TestFormatLocaleWithTime(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tm := Date(2024, 2, 29, tt.hour, tt.minute, tt.second, 0, time.UTC)
+			tm := Date(2024, 2, 29, tt.hour, tt.minute, tt.second, 0, stdtime.UTC)
 			beTime := tm.InEra(BE())
 
 			result := beTime.FormatLocale(LocaleThTH, tt.layout)
@@ -381,7 +381,7 @@ func TestFormatCenturyBoundary(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.reason, func(t *testing.T) {
-			tm := Date(tt.year, 1, 1, 0, 0, 0, 0, time.UTC)
+			tm := Date(tt.year, 1, 1, 0, 0, 0, 0, stdtime.UTC)
 			beTime := tm.InEra(BE())
 
 			result := beTime.FormatLocale(LocaleEnUS, "2006")
