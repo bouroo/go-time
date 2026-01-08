@@ -52,7 +52,7 @@ const MaxBuilderCapacity = 4096
 // The pool will pre-allocate builders with DefaultBuilderCapacity.
 func NewBuilderPool() *BuilderPool {
 	bp := &BuilderPool{}
-	bp.pool.New = func() interface{} {
+	bp.pool.New = func() any {
 		atomic.AddInt64(&bp.stats.Allocates, 1)
 		b := &strings.Builder{}
 		b.Grow(DefaultBuilderCapacity)

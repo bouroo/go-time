@@ -298,16 +298,16 @@ case gotime.ErrCodeInvalidEra:
 // ValidationError for field validation failures
 type ValidationError struct {
     Field      string
-    Value      interface{}
+    Value      any
     Constraint string
 }
 
 // TimeValidationError for time value bounds
 type TimeValidationError struct {
     Field    string
-    Value    interface{}
-    MinValue interface{}
-    MaxValue interface{}
+    Value    any
+    MinValue any
+    MaxValue any
 }
 
 // MultiError for batch operations

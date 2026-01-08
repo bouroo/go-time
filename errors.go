@@ -33,7 +33,7 @@ type baseError struct {
 	code     ErrorCode
 	message  string
 	original error
-	context  map[string]interface{}
+	context  map[string]any
 }
 
 // Error returns a human-readable description of the error.
@@ -55,7 +55,7 @@ func (e *baseError) Code() ErrorCode {
 }
 
 // Context returns additional context information about the error.
-func (e *baseError) Context() map[string]interface{} {
+func (e *baseError) Context() map[string]any {
 	return e.context
 }
 
@@ -64,7 +64,7 @@ type GotimeError interface {
 	error
 	Unwrap() error
 	Code() ErrorCode
-	Context() map[string]interface{}
+	Context() map[string]any
 }
 
 // ParseError represents an error that occurred while parsing a time value.
@@ -91,7 +91,7 @@ func newParseError(input, layout string, era *Era, pos int, original error) *Par
 			code:     ErrCodeInvalidFormat,
 			message:  "failed to parse time",
 			original: original,
-			context: map[string]interface{}{
+			context: map[string]any{
 				"input":    input,
 				"layout":   layout,
 				"era":      eraStr,
@@ -145,7 +145,7 @@ func newThaiTextError(input, reason string, original error) *ThaiTextError {
 			code:     ErrCodeThaiText,
 			message:  "invalid Thai text",
 			original: original,
-			context: map[string]interface{}{
+			context: map[string]any{
 				"input":  input,
 				"reason": reason,
 			},
@@ -164,20 +164,20 @@ func (e *ThaiTextError) Error() string {
 type ValidationError struct {
 	baseError
 	Field      string
-	Value      interface{}
+	Value      any
 	Constraint string
 }
 
 // newValidationError creates a new ValidationError with the specified parameters.
 //
 //nolint:unused
-func newValidationError(field string, value interface{}, constraint string) *ValidationError {
+func newValidationError(field string, value any, constraint string) *ValidationError {
 	return &ValidationError{
 		baseError: baseError{
 			code:     ErrCodeInvalidEra,
 			message:  fmt.Sprintf("validation failed for %s", field),
 			original: nil,
-			context: map[string]interface{}{
+			context: map[string]any{
 				"field":      field,
 				"value":      value,
 				"constraint": constraint,
@@ -198,21 +198,21 @@ func (e *ValidationError) Error() string {
 type TimeValidationError struct {
 	baseError
 	Field    string
-	Value    interface{}
-	MinValue interface{}
-	MaxValue interface{}
+	Value    any
+	MinValue any
+	MaxValue any
 }
 
 // newTimeValidationError creates a new TimeValidationError with the specified parameters.
 //
 //nolint:unused
-func newTimeValidationError(field string, value, min, max interface{}) *TimeValidationError {
+func newTimeValidationError(field string, value, min, max any) *TimeValidationError {
 	return &TimeValidationError{
 		baseError: baseError{
 			code:     ErrCodeOutOfBounds,
 			message:  fmt.Sprintf("time value out of bounds for %s", field),
 			original: nil,
-			context: map[string]interface{}{
+			context: map[string]any{
 				"field": field,
 				"value": value,
 				"min":   min,
@@ -257,7 +257,7 @@ func newEraMismatchError(expectedEra, actualEra *Era, details string) *EraMismat
 			code:     ErrCodeEraMismatch,
 			message:  "era mismatch",
 			original: nil,
-			context: map[string]interface{}{
+			context: map[string]any{
 				"expected_era": expectedStr,
 				"actual_era":   actualStr,
 				"details":      details,
@@ -353,7 +353,7 @@ func (e *MultiError) Is(target error) bool {
 }
 
 // As reports whether any error in the collection can be assigned to target.
-func (e *MultiError) As(target interface{}) bool {
+func (e *MultiError) As(target any) bool {
 	for _, err := range e.errors {
 		if errors.As(err, target) {
 			return true
@@ -423,7 +423,7 @@ func GetErrorPosition(err error) (line, column int) {
 
 // GetErrorContext returns the context map for the given error.
 // Returns nil if the error doesn't have context.
-func GetErrorContext(err error) map[string]interface{} {
+func GetErrorContext(err error) map[string]any {
 	var ge GotimeError
 	if errors.As(err, &ge) {
 		return ge.Context()
