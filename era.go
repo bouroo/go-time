@@ -4,6 +4,23 @@
 // while adding era-specific functionality commonly used in Thailand and other
 // regions that utilize different calendar eras.
 //
+// # Thread Safety
+//
+// This package is fully thread-safe. All operations can be safely used concurrently:
+//
+//   - Time values (Time struct) are immutable once created; all access is read-only
+//   - Era registry operations (RegisterEra, GetEra) are protected by sync.RWMutex
+//   - Era cache operations use sync.Map for lock-free reads and atomic swaps
+//   - Reference date configuration uses sync.RWMutex for safe concurrent access
+//
+// Example of safe concurrent usage:
+//
+//	gotime.Now() creates a new Time value, safe for concurrent use
+//	tm := gotime.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC).InEra(gotime.BE())
+//	// tm can be safely passed to multiple goroutines
+//	go func() { _ = tm.Year() }()
+//	go func() { _ = tm.Format("2006") }()
+//
 // The package defines an Era type to represent different calendar systems and
 // provides utilities for converting between eras, formatting dates with era-specific
 // years, and parsing Thai text representations.
@@ -12,6 +29,8 @@ package gotime
 import (
 	"sync"
 	"time"
+
+	"github.com/bouroo/go-time/internal"
 )
 
 // Era represents a calendar era with a name and year offset from Common Era (CE).
@@ -36,6 +55,11 @@ var (
 
 	eras   = make(map[string]*Era)
 	erasMu sync.RWMutex
+
+	// detectionReferenceDate is the reference date for era detection.
+	// If zero, time.Now() is used. This enables deterministic testing.
+	detectionReferenceDate time.Time
+	detectionMu            sync.RWMutex
 )
 
 func init() {
@@ -81,7 +105,8 @@ func (e *Era) ToCE(eraYear int) int {
 
 // RegisterEra registers a new era with the given name and offset from Common Era.
 // If an era with the same name already exists, it returns the existing era.
-// The registration is thread-safe.
+// The registration is thread-safe. This also clears the era cache to ensure
+// consistency when new eras are added.
 func RegisterEra(name string, offset int) *Era {
 	erasMu.Lock()
 	defer erasMu.Unlock()
@@ -92,6 +117,10 @@ func RegisterEra(name string, offset int) *Era {
 
 	era := &Era{name: name, offset: offset}
 	eras[name] = era
+	
+	// Clear the global era cache to ensure consistency with new era
+	globalEraCache.Clear()
+	
 	return era
 }
 
@@ -103,11 +132,45 @@ func GetEra(name string) *Era {
 	return eras[name]
 }
 
+// SetEraDetectionReferenceDate sets the reference date for era detection.
+// This is useful for deterministic testing. Pass a zero time.Time to use time.Now().
+func SetEraDetectionReferenceDate(t time.Time) {
+	detectionMu.Lock()
+	defer detectionMu.Unlock()
+	detectionReferenceDate = t
+}
+
+// ClearEraCache clears the global era cache.
+// This is useful when you want to release memory or when custom eras
+// have been registered and you want to ensure cache consistency.
+func ClearEraCache() {
+	globalEraCache.Clear()
+}
+
+// EraCacheStats returns the current statistics for the global era cache.
+// This can be used to monitor cache effectiveness.
+func EraCacheStats() internal.CacheStats {
+	return globalEraCache.Stats()
+}
+
+// EraCacheHitRate returns the hit rate of the global era cache as a percentage.
+func EraCacheHitRate() float64 {
+	return globalEraCache.HitRate()
+}
+
 // DetectEraFromYear determines which era (CE or BE) the given year is most
-// likely to belong to based on proximity to the current year. This is useful
+// likely to belong to based on proximity to the reference date. This is useful
 // for Thai date parsing where the era may not be explicitly specified.
+// The reference date is configurable via SetEraDetectionReferenceDate for testing.
 func DetectEraFromYear(year int) *Era {
-	currentTime := time.Now()
+	detectionMu.RLock()
+	refDate := detectionReferenceDate
+	detectionMu.RUnlock()
+
+	currentTime := refDate
+	if currentTime.IsZero() {
+		currentTime = time.Now()
+	}
 	currentCEYear := currentTime.Year()
 	currentBEYear := currentCEYear + BE().offset
 
