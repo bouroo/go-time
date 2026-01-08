@@ -1,4 +1,4 @@
-package gotime
+package time
 
 import (
 	"sync"
