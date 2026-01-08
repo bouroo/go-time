@@ -20,11 +20,11 @@ import (
 //   - Zero allocations for cache hits
 //   - Minimal memory overhead (~16 bytes per entry)
 type EraCache struct {
-	cache atomic.Value // stores *sync.Map for safe atomic swap
+	cache   atomic.Value // stores *sync.Map for safe atomic swap
 	maxSize int
 	stats   CacheStats
-	mu      sync.Mutex  // Protects LRU list and stats access
-	lruList *lruList // For LRU eviction (optional)
+	mu      sync.Mutex // Protects LRU list and stats access
+	lruList *lruList   // For LRU eviction (optional)
 }
 
 // cacheKey represents a unique cache entry key combining CE year and era pointer.
@@ -50,9 +50,9 @@ type lruList struct {
 }
 
 type lruNode struct {
-	key   cacheKey
-	prev  *lruNode
-	next  *lruNode
+	key  cacheKey
+	prev *lruNode
+	next *lruNode
 }
 
 // DefaultMaxCacheSize is the default maximum number of entries in the cache.

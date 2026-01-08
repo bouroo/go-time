@@ -319,7 +319,7 @@ func TestHighConcurrencyStress(t *testing.T) {
 				case <-done:
 					return
 				default:
-				tm := Date(2020+id%10, int(time.Month(id%12+1)), id%28+1, id%24, id%60, 0, 0, time.UTC)
+					tm := Date(2020+id%10, int(time.Month(id%12+1)), id%28+1, id%24, id%60, 0, 0, time.UTC)
 					if id%2 == 0 {
 						tm = tm.InEra(BE())
 					}
@@ -399,7 +399,7 @@ func TestEraCacheLRUConcurrency(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < numIterations; j++ {
 				// Access times with different years and eras to trigger LRU
-				year := 2000 + (id*10 + j)%100
+				year := 2000 + (id*10+j)%100
 				tm := Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
 				if j%2 == 0 {
 					tm = tm.InEra(BE())

@@ -39,10 +39,10 @@ func NewRegexPool(pattern string) *RegexPool {
 		pattern: compiled,
 		pool: &sync.Pool{
 			New: func() interface{} {
-			// Create a fresh copy of the compiled regex for each pool entry.
-			// Copy() is deprecated since Go 1.12 but still required here for thread safety
-			// as each pool entry may be used concurrently by different goroutines.
-			return compiled.Copy() //nolint:staticcheck
+				// Create a fresh copy of the compiled regex for each pool entry.
+				// Copy() is deprecated since Go 1.12 but still required here for thread safety
+				// as each pool entry may be used concurrently by different goroutines.
+				return compiled.Copy() //nolint:staticcheck
 			},
 		},
 	}

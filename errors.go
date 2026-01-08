@@ -30,10 +30,10 @@ const (
 
 // baseError provides common error functionality.
 type baseError struct {
-	code    ErrorCode
-	message string
+	code     ErrorCode
+	message  string
 	original error
-	context map[string]interface{}
+	context  map[string]interface{}
 }
 
 // Error returns a human-readable description of the error.
@@ -76,7 +76,7 @@ type ParseError struct {
 	Layout   string
 	Era      *Era
 	Original error // Kept for backward compatibility
-	Position int    // Line number where the error occurred (1-based)
+	Position int   // Line number where the error occurred (1-based)
 }
 
 // newParseError creates a new ParseError with the specified parameters.
@@ -85,11 +85,11 @@ func newParseError(input, layout string, era *Era, pos int, original error) *Par
 	if era != nil {
 		eraStr = era.String()
 	}
-	
+
 	return &ParseError{
 		baseError: baseError{
-			code:    ErrCodeInvalidFormat,
-			message: "failed to parse time",
+			code:     ErrCodeInvalidFormat,
+			message:  "failed to parse time",
 			original: original,
 			context: map[string]interface{}{
 				"input":    input,
@@ -137,12 +137,13 @@ type ThaiTextError struct {
 }
 
 // newThaiTextError creates a new ThaiTextError with the specified parameters.
+//
 //nolint:unused
 func newThaiTextError(input, reason string, original error) *ThaiTextError {
 	return &ThaiTextError{
 		baseError: baseError{
-			code:    ErrCodeThaiText,
-			message: "invalid Thai text",
+			code:     ErrCodeThaiText,
+			message:  "invalid Thai text",
 			original: original,
 			context: map[string]interface{}{
 				"input":  input,
@@ -168,12 +169,13 @@ type ValidationError struct {
 }
 
 // newValidationError creates a new ValidationError with the specified parameters.
+//
 //nolint:unused
 func newValidationError(field string, value interface{}, constraint string) *ValidationError {
 	return &ValidationError{
 		baseError: baseError{
-			code:    ErrCodeInvalidEra,
-			message: fmt.Sprintf("validation failed for %s", field),
+			code:     ErrCodeInvalidEra,
+			message:  fmt.Sprintf("validation failed for %s", field),
 			original: nil,
 			context: map[string]interface{}{
 				"field":      field,
@@ -202,18 +204,19 @@ type TimeValidationError struct {
 }
 
 // newTimeValidationError creates a new TimeValidationError with the specified parameters.
+//
 //nolint:unused
 func newTimeValidationError(field string, value, min, max interface{}) *TimeValidationError {
 	return &TimeValidationError{
 		baseError: baseError{
-			code:    ErrCodeOutOfBounds,
-			message: fmt.Sprintf("time value out of bounds for %s", field),
+			code:     ErrCodeOutOfBounds,
+			message:  fmt.Sprintf("time value out of bounds for %s", field),
 			original: nil,
 			context: map[string]interface{}{
-				"field":    field,
-				"value":    value,
-				"min":      min,
-				"max":      max,
+				"field": field,
+				"value": value,
+				"min":   min,
+				"max":   max,
 			},
 		},
 		Field:    field,
@@ -237,6 +240,7 @@ type EraMismatchError struct {
 }
 
 // newEraMismatchError creates a new EraMismatchError with the specified parameters.
+//
 //nolint:unused
 func newEraMismatchError(expectedEra, actualEra *Era, details string) *EraMismatchError {
 	expectedStr := "CE"
@@ -247,11 +251,11 @@ func newEraMismatchError(expectedEra, actualEra *Era, details string) *EraMismat
 	if actualEra != nil {
 		actualStr = actualEra.String()
 	}
-	
+
 	return &EraMismatchError{
 		baseError: baseError{
-			code:    ErrCodeEraMismatch,
-			message: "era mismatch",
+			code:     ErrCodeEraMismatch,
+			message:  "era mismatch",
 			original: nil,
 			context: map[string]interface{}{
 				"expected_era": expectedStr,
@@ -267,7 +271,7 @@ func newEraMismatchError(expectedEra, actualEra *Era, details string) *EraMismat
 
 // Error returns a human-readable description of the era mismatch error.
 func (e *EraMismatchError) Error() string {
-	return fmt.Sprintf("era mismatch: expected %s, got %s: %s", 
+	return fmt.Sprintf("era mismatch: expected %s, got %s: %s",
 		e.getEraName(e.ExpectedEra), e.getEraName(e.ActualEra), e.Details)
 }
 

@@ -117,10 +117,10 @@ func RegisterEra(name string, offset int) *Era {
 
 	era := &Era{name: name, offset: offset}
 	eras[name] = era
-	
+
 	// Clear the global era cache to ensure consistency with new era
 	globalEraCache.Clear()
-	
+
 	return era
 }
 
