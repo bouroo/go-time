@@ -1,4 +1,4 @@
-// Package gotime provides enhanced time handling with support for multiple eras
+// Package time provides enhanced time handling with support for multiple eras
 // (such as Buddhist Era BE and Common Era CE), locale-aware formatting, and
 // Thai language text processing. It wraps the standard library's time package
 // while adding era-specific functionality commonly used in Thailand and other
@@ -15,8 +15,8 @@
 //
 // Example of safe concurrent usage:
 //
-//	gotime.Now() creates a new Time value, safe for concurrent use
-//	tm := gotime.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC).InEra(gotime.BE())
+//	time.Now() creates a new Time value, safe for concurrent use
+//	tm := time.Date(2024, 6, 15, 0, 0, 0, 0, time.UTC).InEra(time.BE())
 //	// tm can be safely passed to multiple goroutines
 //	go func() { _ = tm.Year() }()
 //	go func() { _ = tm.Format("2006") }()
@@ -24,11 +24,11 @@
 // The package defines an Era type to represent different calendar systems and
 // provides utilities for converting between eras, formatting dates with era-specific
 // years, and parsing Thai text representations.
-package gotime
+package time
 
 import (
 	"sync"
-	"time"
+	stdtime "time"
 
 	"github.com/bouroo/go-time/internal"
 )
@@ -58,7 +58,7 @@ var (
 
 	// detectionReferenceDate is the reference date for era detection.
 	// If zero, time.Now() is used. This enables deterministic testing.
-	detectionReferenceDate time.Time
+	detectionReferenceDate stdtime.Time
 	detectionMu            sync.RWMutex
 )
 
@@ -134,7 +134,7 @@ func GetEra(name string) *Era {
 
 // SetEraDetectionReferenceDate sets the reference date for era detection.
 // This is useful for deterministic testing. Pass a zero time.Time to use time.Now().
-func SetEraDetectionReferenceDate(t time.Time) {
+func SetEraDetectionReferenceDate(t stdtime.Time) {
 	detectionMu.Lock()
 	defer detectionMu.Unlock()
 	detectionReferenceDate = t
@@ -169,7 +169,7 @@ func DetectEraFromYear(year int) *Era {
 
 	currentTime := refDate
 	if currentTime.IsZero() {
-		currentTime = time.Now()
+		currentTime = stdtime.Now()
 	}
 	currentCEYear := currentTime.Year()
 	currentBEYear := currentCEYear + BE().offset

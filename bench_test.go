@@ -1,15 +1,15 @@
-package gotime
+package time
 
 import (
 	"testing"
-	"time"
+	stdtime "time"
 )
 
-// Benchmark functions for gotime library operations
+// Benchmark functions for time library operations
 
 func BenchmarkDate(b *testing.B) {
 	b.ReportAllocs()
-	loc, _ := time.LoadLocation("UTC")
+	loc, _ := stdtime.LoadLocation("UTC")
 	for b.Loop() {
 		_ = Date(2024, 2, 29, 12, 30, 45, 123456789, loc)
 	}
@@ -24,7 +24,7 @@ func BenchmarkNow(b *testing.B) {
 
 func BenchmarkInEraCE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	ce := CE()
 	for b.Loop() {
 		_ = tm.InEra(ce)
@@ -33,7 +33,7 @@ func BenchmarkInEraCE(b *testing.B) {
 
 func BenchmarkInEraBE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	be := BE()
 	for b.Loop() {
 		_ = tm.InEra(be)
@@ -42,7 +42,7 @@ func BenchmarkInEraBE(b *testing.B) {
 
 func BenchmarkYearCE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.YearCE()
 	}
@@ -50,7 +50,7 @@ func BenchmarkYearCE(b *testing.B) {
 
 func BenchmarkYearBE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 	for b.Loop() {
 		_ = beTime.Year()
@@ -59,7 +59,7 @@ func BenchmarkYearBE(b *testing.B) {
 
 func BenchmarkIsLeap(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.IsLeap()
 	}
@@ -67,7 +67,7 @@ func BenchmarkIsLeap(b *testing.B) {
 
 func BenchmarkIsCE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.IsCE()
 	}
@@ -75,7 +75,7 @@ func BenchmarkIsCE(b *testing.B) {
 
 func BenchmarkIsBE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 	for b.Loop() {
 		_ = beTime.IsBE()
@@ -84,7 +84,7 @@ func BenchmarkIsBE(b *testing.B) {
 
 func BenchmarkFormat(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Format("2006-01-02 15:04:05")
 	}
@@ -92,7 +92,7 @@ func BenchmarkFormat(b *testing.B) {
 
 func BenchmarkFormatBE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 	for b.Loop() {
 		_ = beTime.Format("2006-01-02 15:04:05")
@@ -101,7 +101,7 @@ func BenchmarkFormatBE(b *testing.B) {
 
 func BenchmarkString(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.String()
 	}
@@ -109,16 +109,16 @@ func BenchmarkString(b *testing.B) {
 
 func BenchmarkAdd(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
-		_ = tm.Add(time.Hour)
+		_ = tm.Add(stdtime.Hour)
 	}
 }
 
 func BenchmarkSub(b *testing.B) {
 	b.ReportAllocs()
-	tm1 := Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
-	tm2 := Date(2024, 2, 29, 13, 0, 0, 0, time.UTC)
+	tm1 := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
+	tm2 := Date(2024, 2, 29, 13, 0, 0, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm1.Sub(tm2)
 	}
@@ -126,8 +126,8 @@ func BenchmarkSub(b *testing.B) {
 
 func BenchmarkBefore(b *testing.B) {
 	b.ReportAllocs()
-	tm1 := Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
-	tm2 := Date(2024, 2, 29, 13, 0, 0, 0, time.UTC)
+	tm1 := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
+	tm2 := Date(2024, 2, 29, 13, 0, 0, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm1.Before(tm2)
 	}
@@ -135,8 +135,8 @@ func BenchmarkBefore(b *testing.B) {
 
 func BenchmarkAfter(b *testing.B) {
 	b.ReportAllocs()
-	tm1 := Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
-	tm2 := Date(2024, 2, 29, 13, 0, 0, 0, time.UTC)
+	tm1 := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
+	tm2 := Date(2024, 2, 29, 13, 0, 0, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm2.After(tm1)
 	}
@@ -144,8 +144,8 @@ func BenchmarkAfter(b *testing.B) {
 
 func BenchmarkEqual(b *testing.B) {
 	b.ReportAllocs()
-	tm1 := Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
-	tm2 := Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
+	tm1 := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
+	tm2 := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm1.Equal(tm2)
 	}
@@ -153,7 +153,7 @@ func BenchmarkEqual(b *testing.B) {
 
 func BenchmarkMarshalJSON(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_, _ = tm.MarshalJSON()
 	}
@@ -170,7 +170,7 @@ func BenchmarkUnmarshalJSON(b *testing.B) {
 
 func BenchmarkGobEncode(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 123456789, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 123456789, stdtime.UTC)
 	for b.Loop() {
 		_, _ = tm.GobEncode()
 	}
@@ -178,7 +178,7 @@ func BenchmarkGobEncode(b *testing.B) {
 
 func BenchmarkGobDecode(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 123456789, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 123456789, stdtime.UTC)
 	data, _ := tm.GobEncode()
 	for b.Loop() {
 		var decoded Time
@@ -188,7 +188,7 @@ func BenchmarkGobDecode(b *testing.B) {
 
 func BenchmarkUnix(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Unix()
 	}
@@ -196,7 +196,7 @@ func BenchmarkUnix(b *testing.B) {
 
 func BenchmarkUnixNano(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.UnixNano()
 	}
@@ -204,7 +204,7 @@ func BenchmarkUnixNano(b *testing.B) {
 
 func BenchmarkEraCE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Era()
 	}
@@ -212,7 +212,7 @@ func BenchmarkEraCE(b *testing.B) {
 
 func BenchmarkEraBE(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 	for b.Loop() {
 		_ = beTime.Era()
@@ -221,7 +221,7 @@ func BenchmarkEraBE(b *testing.B) {
 
 func BenchmarkLocation(b *testing.B) {
 	b.ReportAllocs()
-	loc, _ := time.LoadLocation("America/New_York")
+	loc, _ := stdtime.LoadLocation("America/New_York")
 	tm := Date(2024, 2, 29, 12, 30, 45, 0, loc)
 	for b.Loop() {
 		_ = tm.Location()
@@ -230,7 +230,7 @@ func BenchmarkLocation(b *testing.B) {
 
 func BenchmarkDay(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Day()
 	}
@@ -238,7 +238,7 @@ func BenchmarkDay(b *testing.B) {
 
 func BenchmarkMonth(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Month()
 	}
@@ -246,7 +246,7 @@ func BenchmarkMonth(b *testing.B) {
 
 func BenchmarkHour(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Hour()
 	}
@@ -254,7 +254,7 @@ func BenchmarkHour(b *testing.B) {
 
 func BenchmarkMinute(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Minute()
 	}
@@ -262,7 +262,7 @@ func BenchmarkMinute(b *testing.B) {
 
 func BenchmarkSecond(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Second()
 	}
@@ -270,7 +270,7 @@ func BenchmarkSecond(b *testing.B) {
 
 func BenchmarkNanosecond(b *testing.B) {
 	b.ReportAllocs()
-	tm := Date(2024, 2, 29, 12, 30, 45, 123456789, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 123456789, stdtime.UTC)
 	for b.Loop() {
 		_ = tm.Nanosecond()
 	}

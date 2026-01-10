@@ -1,7 +1,7 @@
-// Package gotime provides error types for time parsing and formatting operations.
+// Package time provides error types for time parsing and formatting operations.
 // These errors provide detailed context about parsing failures, including
 // the input value, expected layout, era, and the underlying error.
-package gotime
+package time
 
 import (
 	"errors"
@@ -59,8 +59,8 @@ func (e *baseError) Context() map[string]any {
 	return e.context
 }
 
-// GotimeError is the common interface for all gotime errors.
-type GotimeError interface {
+// TimeError is the common interface for all time errors.
+type TimeError interface {
 	error
 	Unwrap() error
 	Code() ErrorCode
@@ -403,7 +403,7 @@ func IsMultiError(err error) bool {
 // GetErrorCode returns the error code for the given error.
 // Returns ErrCodeUnknown if the error doesn't have a code.
 func GetErrorCode(err error) ErrorCode {
-	var ge GotimeError
+	var ge TimeError
 	if errors.As(err, &ge) {
 		return ge.Code()
 	}
@@ -424,7 +424,7 @@ func GetErrorPosition(err error) (line, column int) {
 // GetErrorContext returns the context map for the given error.
 // Returns nil if the error doesn't have context.
 func GetErrorContext(err error) map[string]any {
-	var ge GotimeError
+	var ge TimeError
 	if errors.As(err, &ge) {
 		return ge.Context()
 	}

@@ -1,5 +1,5 @@
-// Package internal provides utility components for the gotime package.
-// This package is not meant to be imported directly by users of gotime.
+// Package internal provides utility components for the time package.
+// This package is not meant to be imported directly by users of time.
 package internal
 
 import (

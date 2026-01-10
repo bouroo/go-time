@@ -1,4 +1,4 @@
-// Package gotime provides an enhanced Time type that wraps the standard
+// Package time provides an enhanced Time type that wraps the standard
 // library's time.Time with era-specific functionality. It supports Buddhist Era
 // (BE) and Common Era (CE) calendars, Thai language text processing, and
 // locale-aware formatting.
@@ -16,12 +16,12 @@
 // The global era cache (globalEraCache) uses sync.Map for lock-free reads
 // and atomic operations for writes, ensuring optimal performance under
 // concurrent access.
-package gotime
+package time
 
 import (
 	"fmt"
 	"strconv"
-	"time"
+	stdtime "time"
 	"unsafe"
 
 	"github.com/bouroo/go-time/internal"
@@ -39,7 +39,7 @@ var globalEraCache = internal.NewEraCache(internal.DefaultMaxCacheSize)
 // It embeds the standard library's Time type and adds an optional Era field
 // to support Buddhist Era and other calendar systems.
 type Time struct {
-	time.Time
+	stdtime.Time
 	era *Era
 }
 
@@ -52,13 +52,13 @@ func init() {
 
 // Now returns the current local time with no era set (defaults to CE).
 func Now() Time {
-	return Time{Time: time.Now(), era: nil}
+	return Time{Time: stdtime.Now(), era: nil}
 }
 
 // Date constructs a Time with the given components and no era set (defaults to CE).
 // It follows the same signature as time.Date from the standard library.
-func Date(year, month, day, hour, min, sec, nsec int, loc *time.Location) Time {
-	return Time{Time: time.Date(year, time.Month(month), day, hour, min, sec, nsec, loc), era: nil}
+func Date(year, month, day, hour, min, sec, nsec int, loc *stdtime.Location) Time {
+	return Time{Time: stdtime.Date(year, stdtime.Month(month), day, hour, min, sec, nsec, loc), era: nil}
 }
 
 // Era returns the era associated with this time, or CE if no era is set.
@@ -109,7 +109,7 @@ func (t Time) YearCE() int {
 }
 
 // Month returns the month of the year (January=1, December=12).
-func (t Time) Month() time.Month {
+func (t Time) Month() stdtime.Month {
 	return t.Time.Month()
 }
 
@@ -139,7 +139,7 @@ func (t Time) Nanosecond() int {
 }
 
 // Location returns the time's location.
-func (t Time) Location() *time.Location {
+func (t Time) Location() *stdtime.Location {
 	return t.Time.Location()
 }
 
@@ -218,12 +218,12 @@ func (t Time) String() string {
 }
 
 // Add returns the time t+d.
-func (t Time) Add(d time.Duration) Time {
+func (t Time) Add(d stdtime.Duration) Time {
 	return Time{Time: t.Time.Add(d), era: t.era}
 }
 
 // Sub returns the duration t-u.
-func (t Time) Sub(u Time) time.Duration {
+func (t Time) Sub(u Time) stdtime.Duration {
 	return t.Time.Sub(u.Time)
 }
 
@@ -266,14 +266,14 @@ func (t *Time) GobDecode(data []byte) error {
 
 // Parse is a wrapper around time.Parse from the standard library.
 // It parses a formatted time string and returns the result as time.Time.
-func Parse(layout, value string) (time.Time, error) {
-	return time.Parse(layout, value)
+func Parse(layout, value string) (stdtime.Time, error) {
+	return stdtime.Parse(layout, value)
 }
 
 // ParseInLocation is a wrapper around time.ParseInLocation from the standard library.
 // It parses a formatted time string in the given location.
-func ParseInLocation(layout, value string, loc *time.Location) (time.Time, error) {
-	return time.ParseInLocation(layout, value, loc)
+func ParseInLocation(layout, value string, loc *stdtime.Location) (stdtime.Time, error) {
+	return stdtime.ParseInLocation(layout, value, loc)
 }
 
 // ParseWithEra parses a time string with era-specific processing.
@@ -292,7 +292,7 @@ func ParseWithEra(layout, value string, era *Era) (Time, error) {
 		converted = convertBEYearToCE(converted)
 	}
 
-	t, err := time.Parse(layout, converted)
+	t, err := stdtime.Parse(layout, converted)
 	if err != nil {
 		return Time{}, newParseError(value, layout, era, 0, err)
 	}
@@ -304,7 +304,7 @@ func ParseWithEra(layout, value string, era *Era) (Time, error) {
 // era-specific processing. It converts Thai month and day names to English
 // before parsing. If the era is BE, it also converts Buddhist Era years
 // to Common Era. Returns a ParseError if parsing fails.
-func ParseInLocationWithEra(layout, value string, loc *time.Location, era *Era) (Time, error) {
+func ParseInLocationWithEra(layout, value string, loc *stdtime.Location, era *Era) (Time, error) {
 	if era == nil {
 		era = CE()
 	}
@@ -316,7 +316,7 @@ func ParseInLocationWithEra(layout, value string, loc *time.Location, era *Era) 
 		converted = convertBEYearToCE(converted)
 	}
 
-	t, err := time.ParseInLocation(layout, converted, loc)
+	t, err := stdtime.ParseInLocation(layout, converted, loc)
 	if err != nil {
 		return Time{}, newParseError(value, layout, era, 0, err)
 	}
@@ -331,7 +331,7 @@ func ParseThai(layout, value string) (Time, error) {
 	converted := replaceThaiMonthNames(value)
 	converted = replaceThaiDayNames(converted)
 
-	t, err := time.Parse(layout, converted)
+	t, err := stdtime.Parse(layout, converted)
 	if err != nil {
 		return Time{}, err
 	}
@@ -340,7 +340,7 @@ func ParseThai(layout, value string) (Time, error) {
 
 	if detectedEra == BE() {
 		ceYear := BE().ToCE(t.Year())
-		t = time.Date(ceYear, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+		t = stdtime.Date(ceYear, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
 		return Time{Time: t, era: BE()}, nil
 	}
 
@@ -350,11 +350,11 @@ func ParseThai(layout, value string) (Time, error) {
 // ParseThaiInLocation parses a time string with Thai month and day names
 // in a specific location. It automatically detects whether the year is in
 // BE or CE format based on proximity to the current year.
-func ParseThaiInLocation(layout, value string, loc *time.Location) (Time, error) {
+func ParseThaiInLocation(layout, value string, loc *stdtime.Location) (Time, error) {
 	converted := replaceThaiMonthNames(value)
 	converted = replaceThaiDayNames(converted)
 
-	t, err := time.ParseInLocation(layout, converted, loc)
+	t, err := stdtime.ParseInLocation(layout, converted, loc)
 	if err != nil {
 		return Time{}, err
 	}
@@ -363,7 +363,7 @@ func ParseThaiInLocation(layout, value string, loc *time.Location) (Time, error)
 
 	if detectedEra == BE() {
 		ceYear := BE().ToCE(t.Year())
-		t = time.Date(ceYear, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), loc)
+		t = stdtime.Date(ceYear, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), loc)
 		return Time{Time: t, era: BE()}, nil
 	}
 

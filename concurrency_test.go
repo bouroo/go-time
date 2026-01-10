@@ -1,12 +1,12 @@
-// Package gotime provides comprehensive concurrency tests to verify thread safety
+// Package time provides comprehensive concurrency tests to verify thread safety
 // of all operations. These tests use the race detector to detect potential issues.
-package gotime
+package time
 
 import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
+	stdtime "time"
 )
 
 // TestConcurrentEraRegistration verifies that concurrent era registration
@@ -57,7 +57,7 @@ func TestConcurrentTimeYearAccess(t *testing.T) {
 	const numIterations = 100
 
 	// Create a time in BE era
-	tm := Date(2024, 6, 15, 12, 30, 45, 0, time.UTC).InEra(BE())
+	tm := Date(2024, 6, 15, 12, 30, 45, 0, stdtime.UTC).InEra(BE())
 
 	var wg sync.WaitGroup
 	var counter int64
@@ -91,9 +91,9 @@ func TestConcurrentFormatOperations(t *testing.T) {
 
 	// Create times in different eras
 	times := []Time{
-		Date(2024, 1, 15, 10, 30, 0, 0, time.UTC).InEra(CE()),
-		Date(2024, 6, 15, 12, 0, 0, 0, time.UTC).InEra(BE()),
-		Date(2023, 12, 31, 23, 59, 59, 0, time.UTC).InEra(BE()),
+		Date(2024, 1, 15, 10, 30, 0, 0, stdtime.UTC).InEra(CE()),
+		Date(2024, 6, 15, 12, 0, 0, 0, stdtime.UTC).InEra(BE()),
+		Date(2023, 12, 31, 23, 59, 59, 0, stdtime.UTC).InEra(BE()),
 	}
 
 	var wg sync.WaitGroup
@@ -166,7 +166,8 @@ func TestConcurrentThaiParsing(t *testing.T) {
 			for j := 0; j < numIterations; j++ {
 				input := inputs[id%len(inputs)]
 				_, _ = ParseThai(input.layout, input.value)
-				_, _ = ParseThaiInLocation(input.layout, input.value, time.UTC)
+				_, _ = ParseThai(input.layout, input.value)
+				_, _ = ParseThaiInLocation(input.layout, input.value, stdtime.UTC)
 			}
 		}(i)
 	}
@@ -186,7 +187,7 @@ func TestConcurrentEraCacheAccess(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < numIterations; j++ {
 				// Create different times in different eras
-				tm := Date(2020+j%50, 1, 1, 0, 0, 0, 0, time.UTC).InEra(BE())
+				tm := Date(2020+j%50, 1, 1, 0, 0, 0, 0, stdtime.UTC).InEra(BE())
 				_ = tm.Year()
 				_ = tm.Format("2006")
 				_ = tm.FormatLocale(LocaleThTH, "2006")
@@ -212,7 +213,7 @@ func TestConcurrentCacheClear(t *testing.T) {
 	const numIterations = 10
 
 	// Pre-populate the cache
-	tm := Date(2024, 6, 15, 12, 0, 0, 0, time.UTC).InEra(BE())
+	tm := Date(2024, 6, 15, 12, 0, 0, 0, stdtime.UTC).InEra(BE())
 	for i := 0; i < 100; i++ {
 		_ = tm.Year()
 	}
@@ -252,12 +253,12 @@ func TestConcurrentReferenceDateModification(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < numIterations; j++ {
 				// Set reference dates
-				refDate := time.Date(2024, time.Month(j%12+1), 15, 0, 0, 0, 0, time.UTC)
+				refDate := stdtime.Date(2024, stdtime.Month(j%12+1), 15, 0, 0, 0, 0, stdtime.UTC)
 				SetEraDetectionReferenceDate(refDate)
 				SetYearFormatReferenceDate(refDate)
 
 				// Use the reference dates
-				tm := Date(2024, 6, 15, 12, 0, 0, 0, time.UTC).InEra(BE())
+				tm := Date(2024, 6, 15, 12, 0, 0, 0, stdtime.UTC).InEra(BE())
 				_ = tm.Format("2006")
 				_ = DetectEraFromYear(2567)
 			}
@@ -267,8 +268,8 @@ func TestConcurrentReferenceDateModification(t *testing.T) {
 	wg.Wait()
 
 	// Clear reference dates at the end
-	SetEraDetectionReferenceDate(time.Time{})
-	SetYearFormatReferenceDate(time.Time{})
+	SetEraDetectionReferenceDate(stdtime.Time{})
+	SetYearFormatReferenceDate(stdtime.Time{})
 }
 
 // TestConcurrentStringReplacerAccess tests concurrent access to StringReplacer.
@@ -319,7 +320,7 @@ func TestHighConcurrencyStress(t *testing.T) {
 				case <-done:
 					return
 				default:
-					tm := Date(2020+id%10, int(time.Month(id%12+1)), id%28+1, id%24, id%60, 0, 0, time.UTC)
+					tm := Date(2020+id%10, int(stdtime.Month(id%12+1)), id%28+1, id%24, id%60, 0, 0, stdtime.UTC)
 					if id%2 == 0 {
 						tm = tm.InEra(BE())
 					}
@@ -333,7 +334,7 @@ func TestHighConcurrencyStress(t *testing.T) {
 	}
 
 	// Run for a bit then stop
-	time.Sleep(100 * time.Millisecond)
+	stdtime.Sleep(100 * stdtime.Millisecond)
 	close(done)
 	wg.Wait()
 }
@@ -352,7 +353,7 @@ func TestMixedConcurrentOperations(t *testing.T) {
 			for j := 0; j < numIterations; j++ {
 				// Simulate real-world usage
 				// 1. Create time in random era
-				tm := Date(2020+j%10, int(time.Month(j%12+1)), j%28+1, j%24, j%60, 0, 0, time.UTC)
+				tm := Date(2020+j%10, int(stdtime.Month(j%12+1)), j%28+1, j%24, j%60, 0, 0, stdtime.UTC)
 				if j%3 != 0 {
 					tm = tm.InEra(BE())
 				}
@@ -375,7 +376,7 @@ func TestMixedConcurrentOperations(t *testing.T) {
 				}
 
 				// 5. Time arithmetic
-				tm = tm.Add(time.Hour * 24 * 30)
+				tm = tm.Add(stdtime.Hour * 24 * 30)
 				_ = tm.AddDate(1, 0, 0)
 			}
 		}(i)
@@ -400,7 +401,7 @@ func TestEraCacheLRUConcurrency(t *testing.T) {
 			for j := 0; j < numIterations; j++ {
 				// Access times with different years and eras to trigger LRU
 				year := 2000 + (id*10+j)%100
-				tm := Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+				tm := Date(year, 1, 1, 0, 0, 0, 0, stdtime.UTC)
 				if j%2 == 0 {
 					tm = tm.InEra(BE())
 				}
@@ -425,7 +426,7 @@ func TestEraCacheLRUConcurrency(t *testing.T) {
 // BenchmarkConcurrentYearAccess benchmarks concurrent year access performance.
 func BenchmarkConcurrentYearAccess(b *testing.B) {
 	b.StopTimer()
-	tm := Date(2024, 6, 15, 12, 0, 0, 0, time.UTC).InEra(BE())
+	tm := Date(2024, 6, 15, 12, 0, 0, 0, stdtime.UTC).InEra(BE())
 
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -439,7 +440,7 @@ func BenchmarkConcurrentYearAccess(b *testing.B) {
 // BenchmarkConcurrentFormat benchmarks concurrent format operations.
 func BenchmarkConcurrentFormat(b *testing.B) {
 	b.StopTimer()
-	tm := Date(2024, 6, 15, 12, 0, 0, 0, time.UTC).InEra(BE())
+	tm := Date(2024, 6, 15, 12, 0, 0, 0, stdtime.UTC).InEra(BE())
 
 	b.StartTimer()
 	b.RunParallel(func(pb *testing.PB) {

@@ -1,4 +1,4 @@
-// Package internal provides internal utilities for the gotime package.
+// Package internal provides internal utilities for the time package.
 // This package is not part of the public API and may be changed at any time.
 package internal
 

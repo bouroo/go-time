@@ -1,4 +1,4 @@
-// Package gotime provides locale-aware time formatting utilities.
+// Package time provides locale-aware time formatting utilities.
 // It supports formatting time values with Thai locale translations for
 // month names, day names, and era-specific year formatting.
 //
@@ -13,12 +13,12 @@
 //
 // The package uses pre-compiled string replacers and regex pools that are
 // initialized once at package load time and are safe for concurrent access.
-package gotime
+package time
 
 import (
 	"strconv"
 	"sync"
-	"time"
+	stdtime "time"
 	"unsafe"
 
 	"github.com/bouroo/go-time/internal"
@@ -96,13 +96,13 @@ var (
 
 	// yearFormatReferenceDate is the reference date for short year matching.
 	// If zero, time.Now().Year() is used. This enables deterministic testing.
-	yearFormatReferenceDate time.Time
+	yearFormatReferenceDate stdtime.Time
 	yearFormatMu            sync.RWMutex
 )
 
 // SetYearFormatReferenceDate sets the reference date for short year matching in formatting.
 // This is useful for deterministic testing. Pass a zero time.Time to use time.Now().
-func SetYearFormatReferenceDate(t time.Time) {
+func SetYearFormatReferenceDate(t stdtime.Time) {
 	yearFormatMu.Lock()
 	defer yearFormatMu.Unlock()
 	yearFormatReferenceDate = t
@@ -345,7 +345,7 @@ func replaceYearInFormatted(formatted string, eraYear int) string {
 
 	// Use reference date if set, otherwise use current time (non-deterministic but required for runtime behavior)
 	if refDate.IsZero() {
-		refDate = time.Now()
+		refDate = stdtime.Now()
 	}
 	currentCEYear := refDate.Year()
 
