@@ -1,9 +1,9 @@
-package gotime
+package time
 
 import (
 	"errors"
 	"testing"
-	"time"
+	stdtime "time"
 )
 
 // TestParseLeapDayValid tests parsing of valid leap days
@@ -91,7 +91,7 @@ func TestParseLeapDayValid(t *testing.T) {
 				if result.Day() != tt.expectDay {
 					t.Errorf("Day = %d, want %d", result.Day(), tt.expectDay)
 				}
-				if result.Month() != time.February {
+				if result.Month() != stdtime.February {
 					t.Errorf("Month = %v, want February", result.Month())
 				}
 			} else {
@@ -180,7 +180,7 @@ func TestParseThaiMonthNames(t *testing.T) {
 		layout      string
 		value       string
 		era         *Era
-		expectMonth time.Month
+		expectMonth stdtime.Month
 		expectYear  int
 		description string
 	}{
@@ -189,7 +189,7 @@ func TestParseThaiMonthNames(t *testing.T) {
 			"02 January 2006",
 			"15 มกราคม 2024",
 			CE(),
-			time.January, 2024,
+			stdtime.January, 2024,
 			"Full Thai month name",
 		},
 		{
@@ -197,7 +197,7 @@ func TestParseThaiMonthNames(t *testing.T) {
 			"02 January 2006",
 			"29 กุมภาพันธ์ 2024",
 			CE(),
-			time.February, 2024,
+			stdtime.February, 2024,
 			"Thai February leap day",
 		},
 		{
@@ -205,7 +205,7 @@ func TestParseThaiMonthNames(t *testing.T) {
 			"02 January 2006",
 			"10 มีนาคม 2024",
 			CE(),
-			time.March, 2024,
+			stdtime.March, 2024,
 			"Full Thai month name March",
 		},
 		{
@@ -213,7 +213,7 @@ func TestParseThaiMonthNames(t *testing.T) {
 			"02 January 2006",
 			"25 ธันวาคม 2567",
 			BE(),
-			time.December, 2024,
+			stdtime.December, 2024,
 			"Thai December in BE era",
 		},
 		{
@@ -221,7 +221,7 @@ func TestParseThaiMonthNames(t *testing.T) {
 			"02 January 2006",
 			"15 พฤษภาคม 2024",
 			CE(),
-			time.May, 2024,
+			stdtime.May, 2024,
 			"Thai May",
 		},
 	}
@@ -250,7 +250,7 @@ func TestParseThaiDayNames(t *testing.T) {
 		layout        string
 		value         string
 		era           *Era
-		expectWeekday time.Weekday
+		expectWeekday stdtime.Weekday
 		description   string
 	}{
 		{
@@ -258,7 +258,7 @@ func TestParseThaiDayNames(t *testing.T) {
 			"Monday, 02 January 2006",
 			"จันทร์, 15 มกราคม 2024",
 			CE(),
-			time.Monday,
+			stdtime.Monday,
 			"Monday in Thai",
 		},
 		{
@@ -266,7 +266,7 @@ func TestParseThaiDayNames(t *testing.T) {
 			"Monday, 02 January 2006",
 			"ศุกร์, 12 มกราคม 2567",
 			BE(),
-			time.Friday,
+			stdtime.Friday,
 			"Friday in Thai with BE",
 		},
 		{
@@ -274,7 +274,7 @@ func TestParseThaiDayNames(t *testing.T) {
 			"Monday, 02 January 2006",
 			"อาทิตย์, 07 มกราคม 2024",
 			CE(),
-			time.Sunday,
+			stdtime.Sunday,
 			"Sunday in Thai",
 		},
 	}
@@ -365,7 +365,7 @@ func TestParseBEYearConversion(t *testing.T) {
 
 // TestParseInLocationWithEraAndLeapDay tests ParseInLocationWithEra with leap days
 func TestParseInLocationWithEraAndLeapDay(t *testing.T) {
-	bangkokLoc, err := time.LoadLocation("Asia/Bangkok")
+	bangkokLoc, err := stdtime.LoadLocation("Asia/Bangkok")
 	if err != nil {
 		t.Skipf("Could not load Bangkok timezone: %v", err)
 	}
@@ -374,10 +374,10 @@ func TestParseInLocationWithEraAndLeapDay(t *testing.T) {
 		name        string
 		layout      string
 		value       string
-		location    *time.Location
+		location    *stdtime.Location
 		era         *Era
 		expectDay   int
-		expectLoc   *time.Location
+		expectLoc   *stdtime.Location
 		description string
 	}{
 		{
@@ -402,9 +402,9 @@ func TestParseInLocationWithEraAndLeapDay(t *testing.T) {
 			"UTC leap day",
 			"02/01/2006 15:04",
 			"29/02/2024 12:00",
-			time.UTC,
+			stdtime.UTC,
 			CE(),
-			29, time.UTC,
+			29, stdtime.UTC,
 			"Leap day in UTC",
 		},
 	}
@@ -495,7 +495,7 @@ func TestParseThaiAutoDetectLeapDay(t *testing.T) {
 
 // TestParseThaiInLocationAutoDetect tests ParseThaiInLocation
 func TestParseThaiInLocationAutoDetect(t *testing.T) {
-	bangkokLoc, err := time.LoadLocation("Asia/Bangkok")
+	bangkokLoc, err := stdtime.LoadLocation("Asia/Bangkok")
 	if err != nil {
 		t.Skipf("Could not load Bangkok timezone: %v", err)
 	}
@@ -504,7 +504,7 @@ func TestParseThaiInLocationAutoDetect(t *testing.T) {
 		name         string
 		layout       string
 		value        string
-		location     *time.Location
+		location     *stdtime.Location
 		expectedEra  *Era
 		expectedYear int
 		description  string
@@ -635,7 +635,7 @@ func TestParseDropInReplacement(t *testing.T) {
 		t.Run(tt.layout, func(t *testing.T) {
 			// Parse should match stdlib
 			_, err1 := Parse(tt.layout, tt.value)
-			_, err2 := time.Parse(tt.layout, tt.value)
+			_, err2 := stdtime.Parse(tt.layout, tt.value)
 
 			if (err1 == nil) != (err2 == nil) {
 				t.Errorf("Parse() error mismatch: gotime=%v, stdlib=%v", err1 != nil, err2 != nil)
@@ -664,8 +664,8 @@ func TestParseErrorUnwrap(t *testing.T) {
 		t.Errorf("Layout = %q, want %q", parseErr.Layout, "invalid")
 	}
 
-	if parseErr.Original == nil {
-		t.Error("Original error should not be nil")
+	if parseErr.original == nil {
+		t.Error("original error should not be nil")
 	}
 }
 

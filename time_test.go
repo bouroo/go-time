@@ -1,9 +1,9 @@
-package gotime
+package time
 
 import (
 	"strings"
 	"testing"
-	"time"
+	stdtime "time"
 )
 
 // TestLeapDayHandlingCoreRealWorld tests real-world leap day scenarios
@@ -28,7 +28,7 @@ func TestLeapDayHandlingCoreRealWorld(t *testing.T) {
 		{"Feb 29 in non-leap 2023", 2023, 2, 29, false, 0, "2023 is not divisible by 4"},
 		{"Feb 29 in non-leap 2100", 2100, 2, 29, false, 0, "2100 is century but not divisible by 400"},
 		{"Feb 29 in non-leap 1900", 1900, 2, 29, false, 0, "1900 is century but not divisible by 400"},
-		{"Feb 29 in year 1 CE", 1, 2, 29, false, 0, "Year 1 is not leap"},
+		{"Feb 29 in year 1 CE", 1, 2, 29, false, 0, "Year 1 CE not leap"},
 
 		// Non-leap February dates (always valid)
 		{"Feb 28 in 2023", 2023, 2, 28, true, 2566, "Feb 28 always valid"},
@@ -44,7 +44,7 @@ func TestLeapDayHandlingCoreRealWorld(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create the date (Go's time.Date validates the date)
-			tm := time.Date(tt.year, time.Month(tt.month), tt.day, 0, 0, 0, 0, time.UTC)
+			tm := stdtime.Date(tt.year, stdtime.Month(tt.month), tt.day, 0, 0, 0, 0, stdtime.UTC)
 
 			if tt.shouldCreateOK {
 				// Verify we got the correct CE year
@@ -57,8 +57,8 @@ func TestLeapDayHandlingCoreRealWorld(t *testing.T) {
 					t.Errorf("Day mismatch: got %d, want %d", tm.Day(), tt.day)
 				}
 
-				// Wrap in gotime.Time and verify BE conversion
-				gtm := Date(tt.year, tt.month, tt.day, 0, 0, 0, 0, time.UTC)
+				// Wrap in time.Time and verify BE conversion
+				gtm := Date(tt.year, tt.month, tt.day, 0, 0, 0, 0, stdtime.UTC)
 				beTime := gtm.InEra(BE())
 				if beTime.Year() != tt.inBEYear {
 					t.Errorf("BE year mismatch: got %d, want %d", beTime.Year(), tt.inBEYear)
@@ -69,7 +69,7 @@ func TestLeapDayHandlingCoreRealWorld(t *testing.T) {
 			} else {
 				// For invalid dates, time.Date will panic or adjust
 				// We just verify year/month match to show the date was handled
-				if tm.Year() != tt.year || tm.Month() != time.Month(tt.month) {
+				if tm.Year() != tt.year || tm.Month() != stdtime.Month(tt.month) {
 					t.Logf("Invalid date handled: %d-%02d-%02d", tm.Year(), tm.Month(), tm.Day())
 				}
 			}
@@ -106,7 +106,7 @@ func TestLeapDayPreservationAcrossEras(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ceTime := Date(tt.ceYear, tt.month, tt.day, 12, 30, 45, 0, time.UTC)
+			ceTime := Date(tt.ceYear, tt.month, tt.day, 12, 30, 45, 0, stdtime.UTC)
 			beTime := ceTime.InEra(BE())
 
 			// Verify CE year is preserved internally
@@ -115,8 +115,8 @@ func TestLeapDayPreservationAcrossEras(t *testing.T) {
 			}
 
 			// Verify month/day are identical
-			if beTime.Month() != time.Month(tt.month) {
-				t.Errorf("Month mismatch: got %v, want %v", beTime.Month(), time.Month(tt.month))
+			if beTime.Month() != stdtime.Month(tt.month) {
+				t.Errorf("Month mismatch: got %v, want %v", beTime.Month(), stdtime.Month(tt.month))
 			}
 			if beTime.Day() != tt.expectedBEDay {
 				t.Errorf("Day mismatch: got %d, want %d", beTime.Day(), tt.expectedBEDay)
@@ -158,7 +158,7 @@ func TestLeapYearDetectionAcrossAllEras(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.reason, func(t *testing.T) {
-			ceTime := Date(tt.ceYear, 1, 1, 0, 0, 0, 0, time.UTC)
+			ceTime := Date(tt.ceYear, 1, 1, 0, 0, 0, 0, stdtime.UTC)
 			beTime := ceTime.InEra(BE())
 
 			// Both should return same result since leap year is determined by CE year
@@ -200,15 +200,15 @@ func TestCenturyLeapYearEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.reason, func(t *testing.T) {
-			tm := Date(tt.year, 1, 1, 0, 0, 0, 0, time.UTC)
+			tm := Date(tt.year, 1, 1, 0, 0, 0, 0, stdtime.UTC)
 			if tm.IsLeap() != tt.isLeap {
 				t.Errorf("Year %d: IsLeap() = %v, want %v", tt.year, tm.IsLeap(), tt.isLeap)
 			}
 
 			// For leap years, verify Feb 29 can be created
 			if tt.isLeap {
-				leapDay := Date(tt.year, 2, 29, 0, 0, 0, 0, time.UTC)
-				if leapDay.Day() != 29 || leapDay.Month() != time.February {
+				leapDay := Date(tt.year, 2, 29, 0, 0, 0, 0, stdtime.UTC)
+				if leapDay.Day() != 29 || leapDay.Month() != stdtime.February {
 					t.Errorf("Failed to create leap day for year %d", tt.year)
 				}
 			}
@@ -235,7 +235,7 @@ func TestTimeEraConversionPreservation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(testT *testing.T) {
-			ceTime := Date(2024, 2, 29, tt.hour, tt.minute, tt.second, tt.nsec, time.UTC)
+			ceTime := Date(2024, 2, 29, tt.hour, tt.minute, tt.second, tt.nsec, stdtime.UTC)
 			beTime := ceTime.InEra(BE())
 
 			// Verify all time components preserved
@@ -261,7 +261,7 @@ func TestDefaultEraIsCE(t *testing.T) {
 		name string
 		tm   Time
 	}{
-		{"Date with no era", Date(2024, 2, 29, 0, 0, 0, 0, time.UTC)},
+		{"Date with no era", Date(2024, 2, 29, 0, 0, 0, 0, stdtime.UTC)},
 		{"Now()", Now()},
 	}
 
@@ -282,7 +282,7 @@ func TestDefaultEraIsCE(t *testing.T) {
 
 // TestEraFlagMethods tests IsCE() and IsBE() helper methods
 func TestEraFlagMethods(t *testing.T) {
-	ceTime := Date(2024, 2, 29, 0, 0, 0, 0, time.UTC)
+	ceTime := Date(2024, 2, 29, 0, 0, 0, 0, stdtime.UTC)
 	beTime := ceTime.InEra(BE())
 
 	if !ceTime.IsCE() {
@@ -314,7 +314,7 @@ func TestYearAccessorMethods(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(rune(tt.ceYear)), func(t *testing.T) {
-			ceTime := Date(tt.ceYear, 2, 1, 0, 0, 0, 0, time.UTC)
+			ceTime := Date(tt.ceYear, 2, 1, 0, 0, 0, 0, stdtime.UTC)
 			beTime := ceTime.InEra(BE())
 
 			// For CE time
@@ -338,11 +338,11 @@ func TestYearAccessorMethods(t *testing.T) {
 
 // TestTimeOperationsPreserveEra tests that Add/Sub operations preserve era
 func TestTimeOperationsPreserveEra(t *testing.T) {
-	tm := Date(2024, 2, 28, 12, 0, 0, 0, time.UTC)
+	tm := Date(2024, 2, 28, 12, 0, 0, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 
 	// Test Add
-	added := beTime.Add(time.Hour)
+	added := beTime.Add(stdtime.Hour)
 	if !added.IsBE() {
 		t.Error("Add() should preserve era")
 	}
@@ -351,7 +351,7 @@ func TestTimeOperationsPreserveEra(t *testing.T) {
 	}
 
 	// Add one day
-	nextDay := beTime.Add(24 * time.Hour)
+	nextDay := beTime.Add(24 * stdtime.Hour)
 	if !nextDay.IsBE() {
 		t.Error("Add() should preserve era")
 	}
@@ -362,9 +362,9 @@ func TestTimeOperationsPreserveEra(t *testing.T) {
 
 // TestTimeComparisons tests comparison operations work correctly
 func TestTimeComparisons(t *testing.T) {
-	t1 := Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
-	t2 := Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
-	t3 := Date(2024, 2, 29, 13, 0, 0, 0, time.UTC)
+	t1 := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
+	t2 := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
+	t3 := Date(2024, 2, 29, 13, 0, 0, 0, stdtime.UTC)
 
 	// Equal
 	if !t1.Equal(t2) {
@@ -404,7 +404,7 @@ func TestTimeLocations(t *testing.T) {
 
 	for _, locName := range locations {
 		t.Run(locName, func(t *testing.T) {
-			loc, err := time.LoadLocation(locName)
+			loc, err := stdtime.LoadLocation(locName)
 			if err != nil {
 				t.Skipf("Failed to load location %s: %v", locName, err)
 			}
@@ -426,7 +426,7 @@ func TestTimeLocations(t *testing.T) {
 // TestTimeUnixTimestamp tests Unix timestamp consistency with leap days
 func TestTimeUnixTimestamp(t *testing.T) {
 	// 2024-02-29 12:00:00 UTC
-	tm := Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
 	beTime := tm.InEra(BE())
 
 	// Unix timestamp should be identical (same underlying time)
@@ -438,7 +438,7 @@ func TestTimeUnixTimestamp(t *testing.T) {
 	}
 
 	// Should be consistent with stdlib
-	expected := time.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC).Unix()
+	expected := stdtime.Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC).Unix()
 	if tm.Unix() != expected {
 		t.Errorf("Unix() = %d, want %d", tm.Unix(), expected)
 	}
@@ -446,7 +446,7 @@ func TestTimeUnixTimestamp(t *testing.T) {
 
 // TestStringRepresentation tests String() output
 func TestStringRepresentation(t *testing.T) {
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 	str := tm.String()
 
 	// Should contain the date components
@@ -478,7 +478,7 @@ func TestZeroTime(t *testing.T) {
 		t.Error("Zero Time.IsZero() should return true")
 	}
 
-	nonZero := Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	nonZero := Date(2024, 1, 1, 0, 0, 0, 0, stdtime.UTC)
 	if nonZero.IsZero() {
 		t.Error("Non-zero time.IsZero() should return false")
 	}
@@ -486,7 +486,7 @@ func TestZeroTime(t *testing.T) {
 
 // TestJSONMarshaling tests JSON marshaling with leap days
 func TestJSONMarshaling(t *testing.T) {
-	tm := Date(2024, 2, 29, 12, 30, 45, 0, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
 
 	// Marshal
 	data, err := tm.MarshalJSON()
@@ -508,14 +508,14 @@ func TestJSONMarshaling(t *testing.T) {
 	}
 
 	// Verify leap day preserved
-	if unmarshaled.Day() != 29 || unmarshaled.Month() != time.February {
+	if unmarshaled.Day() != 29 || unmarshaled.Month() != stdtime.February {
 		t.Errorf("Leap day lost after marshal/unmarshal: day=%d, month=%v", unmarshaled.Day(), unmarshaled.Month())
 	}
 }
 
 // TestGobEncoding tests Gob encoding with leap days
 func TestGobEncoding(t *testing.T) {
-	tm := Date(2024, 2, 29, 12, 30, 45, 123456789, time.UTC)
+	tm := Date(2024, 2, 29, 12, 30, 45, 123456789, stdtime.UTC)
 
 	// Encode
 	data, err := tm.GobEncode()
@@ -534,7 +534,7 @@ func TestGobEncoding(t *testing.T) {
 	}
 
 	// Verify leap day preserved
-	if decoded.YearCE() != 2024 || decoded.Month() != time.February || decoded.Day() != 29 {
+	if decoded.YearCE() != 2024 || decoded.Month() != stdtime.February || decoded.Day() != 29 {
 		t.Errorf("Leap day lost after Gob encoding: %d-%02d-%02d", decoded.YearCE(), decoded.Month(), decoded.Day())
 	}
 	if decoded.Nanosecond() != 123456789 {
