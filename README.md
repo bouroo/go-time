@@ -35,10 +35,10 @@ import (
 )
 
 // Create a standard time
-t := gotime.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
+t := time.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC)
 
 // Convert to Buddhist Era
-beTime := t.InEra(gotime.BE())
+beTime := t.InEra(time.BE())
 fmt.Printf("BE Year: %d\n", beTime.Year())    // 2567
 fmt.Printf("CE Year: %d\n", beTime.YearCE())  // 2024
 ```
@@ -46,14 +46,14 @@ fmt.Printf("CE Year: %d\n", beTime.YearCE())  // 2024
 ### Thai Date Formatting
 
 ```go
-beTime := gotime.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC).InEra(gotime.BE())
+beTime := time.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC).InEra(time.BE())
 
 // Format with Thai month names
-thai := beTime.FormatLocale(gotime.LocaleThTH, "02 January 2006")
+thai := beTime.FormatLocale(time.LocaleThTH, "02 January 2006")
 // Output: "2 มกราคม 2549"
 
 // Format day of week in Thai
-dayName := beTime.FormatLocale(gotime.LocaleThTH, "Monday")
+dayName := beTime.FormatLocale(time.LocaleThTH, "Monday")
 // Output: "จันทร์"
 ```
 
@@ -61,14 +61,14 @@ dayName := beTime.FormatLocale(gotime.LocaleThTH, "Monday")
 
 ```go
 // Parse with explicit era
-t, err := gotime.ParseWithEra("02 January 2006", "15 มกราคม 2567", gotime.BE())
+t, err := time.ParseWithEra("02 January 2006", "15 มกราคม 2567", time.BE())
 if err != nil {
     log.Fatal(err)
 }
 fmt.Printf("CE Year: %d\n", t.YearCE())  // 2024
 
 // Auto-detect era from year value
-t, err := gotime.ParseThai("02/01/2006", "15/01/2567")
+t, err := time.ParseThai("02/01/2006", "15/01/2567")
 // Years 2501-2599 detected as BE automatically
 fmt.Printf("Era: %v\n", t.Era())        // BE
 ```
@@ -170,7 +170,7 @@ type ParseError struct {
 }
 
 // Example error handling
-t, err := gotime.ParseWithEra("2006-01-02", "invalid-date", gotime.BE())
+t, err := time.ParseWithEra("2006-01-02", "invalid-date", time.BE())
 if err != nil {
     fmt.Printf("Error at offset %d: %v\n", err.Offset, err.Err)
 }
@@ -211,8 +211,6 @@ See [OPTIMIZATION.md](OPTIMIZATION.md) for detailed documentation.
 | String replacement | O(n) | 1 alloc | 70%+ fewer allocs than iterative |
 | CE formatting | ~68ns | 24 B | Minimal overhead |
 | BE formatting | ~997ns | 217 B | Era conversion required |
-
-## Optimization Documentation
 
 ## Optimization Documentation
 
@@ -263,20 +261,20 @@ The package provides structured error handling with error codes:
 import "github.com/bouroo/go-time"
 
 // Check error type
-if gotime.IsParseError(err) {
+if time.IsParseError(err) {
     // Handle parse error
 }
 
-if gotime.IsValidationError(err) {
+if time.IsValidationError(err) {
     // Handle validation error
 }
 
 // Get error code for programmatic handling
-code := gotime.GetErrorCode(err)
+code := time.GetErrorCode(err)
 switch code {
-case gotime.ErrCodeInvalidFormat:
+case time.ErrCodeInvalidFormat:
     // ...
-case gotime.ErrCodeInvalidEra:
+case time.ErrCodeInvalidEra:
     // ...
 }
 ```
@@ -311,7 +309,7 @@ type TimeValidationError struct {
 }
 
 // MultiError for batch operations
-me := gotime.NewMultiError()
+me := time.NewMultiError()
 me.Add(err1)
 me.Add(err2)
 if me.HasErrors() {
@@ -327,20 +325,20 @@ For deterministic testing and cache management:
 import "time"
 
 // Set reference date for era detection (default: time.Now())
-gotime.SetEraDetectionReferenceDate(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+time.SetEraDetectionReferenceDate(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 
 // Set reference date for year formatting
-gotime.SetYearFormatReferenceDate(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
+time.SetYearFormatReferenceDate(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 
 // Clear the global era cache
-gotime.ClearEraCache()
+time.ClearEraCache()
 
 // Get cache statistics
-stats := gotime.EraCacheStats()
+stats := time.EraCacheStats()
 fmt.Printf("Hits: %d, Misses: %d\n", stats.Hits, stats.Misses)
 
 // Get cache hit rate
-hitRate := gotime.EraCacheHitRate()
+hitRate := time.EraCacheHitRate()
 fmt.Printf("Hit Rate: %.1f%%\n", hitRate*100)
 ```
 

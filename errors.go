@@ -75,7 +75,6 @@ type ParseError struct {
 	Input    string
 	Layout   string
 	Era      *Era
-	Original error // Kept for backward compatibility
 	Position int   // Line number where the error occurred (1-based)
 }
 
@@ -101,7 +100,6 @@ func newParseError(input, layout string, era *Era, pos int, original error) *Par
 		Input:    input,
 		Layout:   layout,
 		Era:      era,
-		Original: original, // For backward compatibility
 		Position: pos,
 	}
 }

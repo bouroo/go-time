@@ -664,8 +664,8 @@ func TestParseErrorUnwrap(t *testing.T) {
 		t.Errorf("Layout = %q, want %q", parseErr.Layout, "invalid")
 	}
 
-	if parseErr.Original == nil {
-		t.Error("Original error should not be nil")
+	if parseErr.original == nil {
+		t.Error("original error should not be nil")
 	}
 }
 
