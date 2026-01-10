@@ -28,13 +28,13 @@ func TestConcurrentEraRegistration(t *testing.T) {
 				offset := id + j
 				era := RegisterEra(eraName, offset)
 				if era == nil {
-t.Errorf("RegisterEra returned a nil era, which should not happen")
+					t.Errorf("RegisterEra returned a nil era, which should not happen")
 					continue
 				}
 				// Verify era is retrievable
 				retrieved := GetEra(eraName)
 				if retrieved == nil {
-t.Errorf("GetEra returned nil for a just-registered era")
+					t.Errorf("GetEra returned nil for a just-registered era")
 				}
 			}
 		}(i)

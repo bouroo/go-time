@@ -75,7 +75,7 @@ type ParseError struct {
 	Input    string
 	Layout   string
 	Era      *Era
-	Position int   // Line number where the error occurred (1-based)
+	Position int // Line number where the error occurred (1-based)
 }
 
 // newParseError creates a new ParseError with the specified parameters.
