@@ -34,7 +34,7 @@ t.Errorf("RegisterEra returned a nil era, which should not happen")
 				// Verify era is retrievable
 				retrieved := GetEra(eraName)
 				if retrieved == nil {
-					errChan <- nil // Should not happen
+t.Errorf("GetEra returned nil for a just-registered era")
 				}
 			}
 		}(i)
