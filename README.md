@@ -188,7 +188,8 @@ BenchmarkInEraBE                   757,681,784    1.625 ns/op    0 B/op    0 all
 BenchmarkYearCE                    329,784,787    3.642 ns/op    0 B/op    0 allocs
 BenchmarkYearBE                    322,362,559    3.692 ns/op    0 B/op    0 allocs
 BenchmarkFormat                     17,508,992   66.68 ns/op   24 B/op    1 allocs
-BenchmarkFormatBE                    1,201,922  996.8 ns/op  217 B/op   14 allocs
+BenchmarkFormatBE                    5,292,992  188.6 ns/op   48 B/op    2 allocs
+BenchmarkConcurrentFormat          2,018,768  495.2 ns/op  240 B/op    5 allocs
 BenchmarkString                     13,287,068   87.05 ns/op   32 B/op    1 allocs
 ```
 
@@ -197,9 +198,17 @@ BenchmarkString                     13,287,068   87.05 ns/op   32 B/op    1 allo
 The gotime package includes comprehensive performance optimizations:
 
 - **Single-Pass String Replacement**: O(n) algorithm replacing iterative O(n×m) approach
-- **Regex Compilation Caching**: Pre-compiled patterns eliminate runtime compilation
+- **Manual Year Parsing**: Direct character parsing eliminates regex overhead entirely
 - **Era Year Caching**: LRU cache reduces redundant FromCE() calculations by 80%+
 - **Builder Pooling**: Reuses strings.Builder instances for reduced allocations
+
+#### Recent Improvements (v1.x)
+
+| Benchmark | Before | After | Improvement |
+|-----------|--------|-------|-------------|
+| FormatBE | 996.8 ns/op | 188.6 ns/op | **81.1% faster** |
+| ConcurrentFormat | 958 ns/op | 495.2 ns/op | **48.3% faster** |
+| Memory (FormatBE) | 217 B/op | 48 B/op | **77.9% reduction** |
 
 See [OPTIMIZATION.md](OPTIMIZATION.md) for detailed documentation.
 
@@ -210,7 +219,7 @@ See [OPTIMIZATION.md](OPTIMIZATION.md) for detailed documentation.
 | Year() (cached) | ~5ns | 0 B | 90% faster for repeated calls |
 | String replacement | O(n) | 1 alloc | 70%+ fewer allocs than iterative |
 | CE formatting | ~68ns | 24 B | Minimal overhead |
-| BE formatting | ~997ns | 217 B | Era conversion required |
+| BE formatting | ~189ns | 48 B | **81.1% faster** (was ~997ns) |
 
 ## Optimization Documentation
 
@@ -247,7 +256,7 @@ The optimization layer includes four internal components:
 | Component | Improvement | Location |
 |-----------|-------------|----------|
 | StringReplacer | 70% fewer allocations | [`internal/replacer.go`](internal/replacer.go) |
-| RegexPool | 60% fewer allocations | [`internal/regex_pool.go`](internal/regex_pool.go) |
+| Manual Year Parsing | 81% faster BE formatting | [`format.go`](format.go) |
 | EraCache | 80%+ cache hit rate | [`internal/era_cache.go`](internal/era_cache.go) |
 | BuilderPool | 40% fewer allocations | [`internal/builder_pool.go`](internal/builder_pool.go) |
 
