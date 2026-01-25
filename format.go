@@ -17,6 +17,7 @@ package time
 
 import (
 	"strconv"
+	"strings"
 	"sync"
 	stdtime "time"
 	"unsafe"
@@ -62,8 +63,7 @@ func (t Time) FormatLocale(locale string, layout string) string {
 
 	if locale == LocaleThTH {
 		formatted := t.Time.Format(layout)
-		formatted = replaceMonthNames(formatted)
-		formatted = replaceDayNames(formatted)
+		formatted = replaceThaiLocale(formatted)
 
 		if era != CE() {
 			formatted = replaceYearInFormatted(formatted, eraYear)
@@ -80,10 +80,6 @@ func (t Time) FormatLocale(locale string, layout string) string {
 }
 
 var (
-	// Regex pools for year replacement - eliminates runtime regex compilation.
-	yearRegexPool      *internal.RegexPool
-	shortYearRegexPool *internal.RegexPool
-
 	// Pre-compiled string replacers for performance optimization.
 	// These provide O(n) single-pass replacement instead of O(n*m)
 	// iterative replacements, reducing allocations by 70%+.
@@ -94,10 +90,18 @@ var (
 	thaiMonthReplacer *internal.StringReplacer
 	thaiDayReplacer   *internal.StringReplacer
 
+	// Combined Thai replacer for single-pass month/day replacement in FormatLocale.
+	// This consolidates month and day replacements into one pass for better performance.
+	thaiLocaleReplacer *internal.StringReplacer
+
 	// yearFormatReferenceDate is the reference date for short year matching.
 	// If zero, time.Now().Year() is used. This enables deterministic testing.
 	yearFormatReferenceDate stdtime.Time
 	yearFormatMu            sync.RWMutex
+
+	// builderPool provides pooled strings.Builder instances for reduced allocations.
+	// Used in replaceYearInFormatted and other string construction operations.
+	builderPool = internal.NewBuilderPool()
 )
 
 // SetYearFormatReferenceDate sets the reference date for short year matching in formatting.
@@ -109,87 +113,82 @@ func SetYearFormatReferenceDate(t stdtime.Time) {
 }
 
 func init() {
-	// Pre-compile regex patterns for year replacement into pools.
-	// This eliminates runtime regex compilation overhead.
-	yearRegexPool = internal.NewRegexPool(`\b\d{4}\b`)
-	shortYearRegexPool = internal.NewRegexPool(`\b\d{2}\b`)
-
 	// Pre-compile all string replacers for optimal performance.
 	// This eliminates the need for iterative ReplaceAll() calls.
 	monthReplacer = internal.NewStringReplacer(mergeMonthMaps())
 	dayReplacer = internal.NewStringReplacer(mergeDayMaps())
 	thaiMonthReplacer = internal.NewStringReplacer(mergeThaiToEnglishMonthMaps())
 	thaiDayReplacer = internal.NewStringReplacer(mergeThaiToEnglishDayMaps())
+
+	// Create combined Thai locale replacer for single-pass replacement
+	// This merges month and day maps for better performance in FormatLocale
+	thaiLocaleReplacer = internal.NewStringReplacer(mergeThaiLocaleMaps())
+}
+
+// mergeMaps combines multiple string maps into a single map.
+// Entries from earlier maps take precedence over later maps (no overwriting).
+// This is useful for creating replacement maps where full names should
+// take precedence over short names.
+//
+// Example:
+//
+//	result := mergeMaps(
+//		map[string]string{"January": "มกราคม"},
+//		map[string]string{"Jan": "ม.ค."},
+//	)
+//	// result: {"January": "มกราคม", "Jan": "ม.ค."}
+func mergeMaps(maps ...map[string]string) map[string]string {
+	if len(maps) == 0 {
+		return nil
+	}
+
+	// Calculate total size
+	totalSize := 0
+	for _, m := range maps {
+		totalSize += len(m)
+	}
+
+	result := make(map[string]string, totalSize)
+	for _, m := range maps {
+		for k, v := range m {
+			if _, exists := result[k]; !exists {
+				result[k] = v
+			}
+		}
+	}
+	return result
 }
 
 // mergeMonthMaps combines full and short month name maps for single-pass replacement.
 // Full month names take precedence over short names to ensure correct replacement
 // order (e.g., "May" full name should be used, not short name).
 func mergeMonthMaps() map[string]string {
-	result := make(map[string]string, len(monthNames)+len(shortMonthNames))
-	// First, add all full month names
-	for k, v := range monthNames {
-		result[k] = v
-	}
-	// Then, add short month names only if the key doesn't already exist
-	for k, v := range shortMonthNames {
-		if _, exists := result[k]; !exists {
-			result[k] = v
-		}
-	}
-	return result
+	return mergeMaps(monthNames, shortMonthNames)
 }
 
 // mergeDayMaps combines full and short day name maps for single-pass replacement.
 // Full day names take precedence over short names to ensure correct replacement
 // order when there are overlaps.
 func mergeDayMaps() map[string]string {
-	result := make(map[string]string, len(dayNames)+len(shortDayNames))
-	// First, add all full day names
-	for k, v := range dayNames {
-		result[k] = v
-	}
-	// Then, add short day names only if the key doesn't already exist
-	for k, v := range shortDayNames {
-		if _, exists := result[k]; !exists {
-			result[k] = v
-		}
-	}
-	return result
+	return mergeMaps(dayNames, shortDayNames)
 }
 
 // mergeThaiToEnglishMonthMaps combines Thai to English month maps for single-pass replacement.
 // Full month names take precedence over short names.
 func mergeThaiToEnglishMonthMaps() map[string]string {
-	result := make(map[string]string, len(thaiToEnglishMonthNames)+len(thaiToEnglishShortMonthNames))
-	// First, add all full month names
-	for k, v := range thaiToEnglishMonthNames {
-		result[k] = v
-	}
-	// Then, add short month names only if the key doesn't already exist
-	for k, v := range thaiToEnglishShortMonthNames {
-		if _, exists := result[k]; !exists {
-			result[k] = v
-		}
-	}
-	return result
+	return mergeMaps(thaiToEnglishMonthNames, thaiToEnglishShortMonthNames)
 }
 
 // mergeThaiToEnglishDayMaps combines Thai to English day maps for single-pass replacement.
 // Full day names take precedence over short names.
 func mergeThaiToEnglishDayMaps() map[string]string {
-	result := make(map[string]string, len(thaiToEnglishDayNames)+len(thaiToEnglishShortDayNames))
-	// First, add all full day names
-	for k, v := range thaiToEnglishDayNames {
-		result[k] = v
-	}
-	// Then, add short day names only if the key doesn't already exist
-	for k, v := range thaiToEnglishShortDayNames {
-		if _, exists := result[k]; !exists {
-			result[k] = v
-		}
-	}
-	return result
+	return mergeMaps(thaiToEnglishDayNames, thaiToEnglishShortDayNames)
+}
+
+// mergeThaiLocaleMaps combines month and day name maps for single-pass Thai locale replacement.
+// This is used by FormatLocale to replace both month and day names in one pass.
+func mergeThaiLocaleMaps() map[string]string {
+	return mergeMaps(monthNames, shortMonthNames, dayNames, shortDayNames)
 }
 
 var monthNames = map[string]string{
@@ -316,53 +315,316 @@ func replaceThaiDayNames(s string) string {
 	return thaiDayReplacer.Replace(s)
 }
 
+// replaceThaiLocale replaces all English month and day names with Thai names.
+// Uses pre-compiled combined StringReplacer for O(n) single-pass replacement.
+func replaceThaiLocale(s string) string {
+	return thaiLocaleReplacer.Replace(s)
+}
+
+// isWordChar checks if a character is a word character.
+// Word characters include: letters (a-z, A-Z), digits (0-9), and underscore (_).
+func isWordChar(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+
+// isWordBoundaryBefore checks if there's a word boundary before the given position.
+// Returns true if at start of string or previous character is not a word character.
+func isWordBoundaryBefore(s string, pos int) bool {
+	return pos == 0 || !isWordChar(s[pos-1])
+}
+
+// isWordBoundaryAfter checks if there's a word boundary after the given position.
+// Returns true if at end of string or next character is not a word character.
+func isWordBoundaryAfter(s string, pos int) bool {
+	return pos >= len(s) || !isWordChar(s[pos])
+}
+
+// replaceYearInFormatted replaces year numbers in formatted output with era year.
+// Uses manual character-by-character parsing instead of regex for better performance.
+// This approach avoids regex allocations and provides O(n) single-pass replacement.
+//
+// Performance characteristics:
+//   - Time: O(n) single pass through input string
+//   - Space: O(n) for result, uses pooled builder
+//   - Allocations: 1 result string + 2 small year buffers (stack-allocated)
+//
+// Year buffer optimization: Uses fixed-size byte arrays for small, known-size
+// year strings (4 digits for full year, 2 digits for short year). This avoids
+// heap allocations for the common case of year formatting.
 func replaceYearInFormatted(formatted string, eraYear int) string {
-	// Use strconv.AppendInt for efficient year formatting (avoids fmt.Sprintf allocation)
-	yearBuf := make([]byte, 0, 4)
-	yearBuf = strconv.AppendInt(yearBuf, int64(eraYear), 10)
+	// Pre-compute year strings using strconv for efficiency
+	// Using fixed-size arrays to avoid heap allocations for small buffers
+	var yearBuf [4]byte
+	yearStr := strconv.AppendInt(yearBuf[:0], int64(eraYear), 10)
 	// Pad to 4 digits with leading zeros
-	for len(yearBuf) < 4 {
-		yearBuf = append(yearBuf, '0')
+	for len(yearStr) < 4 {
+		yearStr = append(yearStr, '0')
 	}
-	yearStr := string(yearBuf)
 
 	// Format short year (2 digits)
-	shortYearBuf := make([]byte, 0, 2)
-	shortYearBuf = strconv.AppendInt(shortYearBuf, int64(eraYear%100), 10)
+	var shortYearBuf [2]byte
+	shortYearStr := strconv.AppendInt(shortYearBuf[:0], int64(eraYear%100), 10)
 	// Pad to 2 digits with leading zeros
-	for len(shortYearBuf) < 2 {
-		shortYearBuf = append(shortYearBuf, '0')
+	for len(shortYearStr) < 2 {
+		shortYearStr = append(shortYearStr, '0')
 	}
-	shortYearStr := string(shortYearBuf)
 
-	result := yearRegexPool.ReplaceAllString(formatted, yearStr)
-
-	// Get reference year's last 2 digits to match against the formatted output
+	// Get reference year's last 2 digits
 	// Uses configurable reference date for deterministic testing
 	yearFormatMu.RLock()
 	refDate := yearFormatReferenceDate
 	yearFormatMu.RUnlock()
 
-	// Use reference date if set, otherwise use current time (non-deterministic but required for runtime behavior)
 	if refDate.IsZero() {
 		refDate = stdtime.Now()
 	}
-	currentCEYear := refDate.Year()
-
-	// Format current short year using strconv for consistency
-	currentShortYearBuf := make([]byte, 0, 2)
-	currentShortYearBuf = strconv.AppendInt(currentShortYearBuf, int64(currentCEYear%100), 10)
-	for len(currentShortYearBuf) < 2 {
-		currentShortYearBuf = append(currentShortYearBuf, '0')
+	currentShortYear := strconv.Itoa(refDate.Year() % 100)
+	// Pad to 2 digits with leading zeros
+	if len(currentShortYear) == 1 {
+		currentShortYear = "0" + currentShortYear
 	}
-	currentShortYear := string(currentShortYearBuf)
 
-	result = shortYearRegexPool.ReplaceAllStringFunc(result, func(match string) string {
-		if match == currentShortYear {
-			return shortYearStr
+	// Use pooled builder for final result to reduce allocations
+	// Estimate capacity: input length + potential expansion (max 4 extra chars for year replacement)
+	resultBuilder := builderPool.Get(len(formatted) + 4)
+	defer builderPool.Put(resultBuilder)
+
+	// Perform year replacement in a single pass using manual parsing
+	// This is more efficient than using regex for simple numeric replacements
+	i := 0
+	for i < len(formatted) {
+		// Check for 4-digit year pattern (word boundary)
+		if i+4 <= len(formatted) && formatted[i] >= '0' && formatted[i] <= '9' {
+			// Verify we have a 4-digit number
+			j := i
+			for j < i+4 && j < len(formatted) && formatted[j] >= '0' && formatted[j] <= '9' {
+				j++
+			}
+			if j-i == 4 {
+				// Check for word boundaries before and after
+				if isWordBoundaryBefore(formatted, i) && isWordBoundaryAfter(formatted, j) {
+					// This is a 4-digit year, replace it
+					resultBuilder.Write(yearStr)
+					i = j
+					continue
+				}
+			}
 		}
-		return match
-	})
 
-	return result
+		// Check for 2-digit year pattern that matches current short year
+		if i+2 <= len(formatted) && formatted[i] >= '0' && formatted[i] <= '9' {
+			// Verify we have a 2-digit number
+			j := i
+			for j < i+2 && j < len(formatted) && formatted[j] >= '0' && formatted[j] <= '9' {
+				j++
+			}
+			if j-i == 2 {
+				// Check for word boundaries before and after
+				if isWordBoundaryBefore(formatted, i) && isWordBoundaryAfter(formatted, j) {
+					// Check if this matches the current short year
+					if formatted[i:i+2] == currentShortYear {
+						resultBuilder.Write(shortYearStr)
+						i = j
+						continue
+					}
+				}
+			}
+		}
+
+		// No match, copy current character
+		resultBuilder.WriteByte(formatted[i])
+		i++
+	}
+
+	return resultBuilder.String()
+}
+
+// FormatEra formats the era name localized for the given locale.
+// For example, with BE era and locale "th-TH", returns "พ.ศ.".
+// With Reiwa era and locale "ja-JP", returns "令和".
+//
+// If no localized name exists for the locale, returns the default era name.
+func (t Time) FormatEra(locale string) string {
+	era := t.Era()
+	if era == nil || era == CE() {
+		return ""
+	}
+	return era.NameForLocale(locale)
+}
+
+// FormatWithEraStyle formats the time using era-specific rules.
+// It respects the era's format settings (prefix, suffix, year digits)
+// and localizes the era name if available.
+//
+// The layout parameter is the format layout (e.g., "2006年01月02日").
+// The locale parameter is used for era name localization.
+//
+// If the era has a custom formatter registered, it will be used.
+// Otherwise, the era's Format settings are applied.
+func (t Time) FormatWithEraStyle(locale string, layout string) string {
+	era := t.Era()
+
+	// Fast path for CE era
+	if era == CE() {
+		return t.Time.Format(layout)
+	}
+
+	// Check for custom formatter
+	if era.formatter != nil {
+		result := era.formatter(t)
+		if result != "" {
+			return result
+		}
+	}
+
+	// Use era format settings
+	if era.format != nil && era.format.FullFormat != "" {
+		// Use custom full format
+		return formatWithEraFullFormat(t, locale, era.format.FullFormat)
+	}
+
+	// Standard formatting with era adjustments
+	return formatWithEraAdjustments(t, locale, layout, era)
+}
+
+// formatWithEraFullFormat formats using a custom full format string.
+func formatWithEraFullFormat(t Time, locale string, fullFormat string) string {
+	// Replace era name placeholder if present
+	eraName := t.FormatEra(locale)
+
+	// Format the base time
+	baseFormatted := t.Time.Format(fullFormat)
+
+	// Replace era name
+	if eraName != "" {
+		baseFormatted = strings.Replace(baseFormatted, "{era}", eraName, 1)
+	}
+
+	return baseFormatted
+}
+
+// formatWithEraAdjustments formats with era prefix/suffix adjustments.
+func formatWithEraAdjustments(t Time, locale string, layout string, era *Era) string {
+	// Get the formatted base time
+	baseFormatted := t.Time.Format(layout)
+
+	// Apply era-specific formatting to the year
+	eraYear := era.FromCE(t.Time.Year())
+
+	// Handle zero-based years (e.g., Japanese era year 1 = "元年")
+	if era.format != nil && era.format.ZeroBased {
+		// Adjust year number (year 1 in era is year 0 in calculation)
+		if eraYear == 1 {
+			eraYear = 0
+		}
+	}
+
+	// Build the era-formatted year
+	var eraYearStr string
+	if era.format != nil {
+		eraYearStr = formatEraYear(eraYear, era.format)
+	} else {
+		eraYearStr = strconv.Itoa(eraYear)
+	}
+
+	// Apply prefix and suffix
+	var result strings.Builder
+	if era.format != nil && era.format.Prefix != "" {
+		result.WriteString(era.format.Prefix)
+	}
+	result.WriteString(eraYearStr)
+	if era.format != nil && era.format.Suffix != "" {
+		result.WriteString(era.format.Suffix)
+	}
+
+	// Replace the year in the formatted output
+	return replaceYearInFormattedWithEraString(baseFormatted, eraYearStr)
+}
+
+// formatEraYear formats the era year according to the format settings.
+func formatEraYear(year int, format *EraFormat) string {
+	yearStr := strconv.Itoa(year)
+
+	switch format.YearDigits {
+	case 1:
+		// Single digit (gannen style for year 1)
+		if year == 1 {
+			return "元" // Japanese gannen - first year
+		}
+		if year < 10 {
+			return yearStr
+		}
+		return yearStr[len(yearStr)-1:]
+	case 2:
+		// Two digits with leading zeros
+		if len(yearStr) == 1 {
+			return "0" + yearStr
+		}
+		return yearStr[len(yearStr)-2:]
+	case 4:
+		// Four digits with leading zeros
+		for len(yearStr) < 4 {
+			yearStr = "0" + yearStr
+		}
+		return yearStr
+	default:
+		// Default: use as-is
+		return yearStr
+	}
+}
+
+// replaceYearInFormattedWithEraString replaces year numbers with era-specific string.
+func replaceYearInFormattedWithEraString(formatted string, eraYearStr string) string {
+	// Use the standard replace function but with era year string
+	return replaceYearInFormatted(formatted, parseEraYear(eraYearStr))
+}
+
+// parseEraYear parses an era year string to an integer.
+func parseEraYear(s string) int {
+	// Handle Japanese "元" (gannen/first year)
+	if s == "元" {
+		return 1
+	}
+
+	n, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return n
+}
+
+// EraFormatStats returns formatting statistics for an era.
+// This can be used to monitor formatting performance.
+type EraFormatStats struct {
+	TotalFormatters  int
+	TotalPrefixes    int
+	TotalSuffixes    int
+	TotalFullFormats int
+	EraWithFormatter int
+}
+
+// GetEraFormatStats returns statistics about registered era formats.
+func GetEraFormatStats() EraFormatStats {
+	erasMu.RLock()
+	defer erasMu.RUnlock()
+
+	var stats EraFormatStats
+	for _, era := range eras {
+		if era.format != nil {
+			stats.TotalFormatters++
+			if era.format.Prefix != "" {
+				stats.TotalPrefixes++
+			}
+			if era.format.Suffix != "" {
+				stats.TotalSuffixes++
+			}
+			if era.format.FullFormat != "" {
+				stats.TotalFullFormats++
+			}
+		}
+		if era.formatter != nil {
+			stats.EraWithFormatter++
+		}
+	}
+	return stats
 }

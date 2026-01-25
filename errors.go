@@ -134,25 +134,6 @@ type ThaiTextError struct {
 	Reason string
 }
 
-// newThaiTextError creates a new ThaiTextError with the specified parameters.
-//
-//nolint:unused
-func newThaiTextError(input, reason string, original error) *ThaiTextError {
-	return &ThaiTextError{
-		baseError: baseError{
-			code:     ErrCodeThaiText,
-			message:  "invalid Thai text",
-			original: original,
-			context: map[string]any{
-				"input":  input,
-				"reason": reason,
-			},
-		},
-		Input:  input,
-		Reason: reason,
-	}
-}
-
 // Error returns a human-readable description of the Thai text error.
 func (e *ThaiTextError) Error() string {
 	return fmt.Sprintf("invalid Thai text %q: %s", e.Input, e.Reason)
@@ -164,27 +145,6 @@ type ValidationError struct {
 	Field      string
 	Value      any
 	Constraint string
-}
-
-// newValidationError creates a new ValidationError with the specified parameters.
-//
-//nolint:unused
-func newValidationError(field string, value any, constraint string) *ValidationError {
-	return &ValidationError{
-		baseError: baseError{
-			code:     ErrCodeInvalidEra,
-			message:  fmt.Sprintf("validation failed for %s", field),
-			original: nil,
-			context: map[string]any{
-				"field":      field,
-				"value":      value,
-				"constraint": constraint,
-			},
-		},
-		Field:      field,
-		Value:      value,
-		Constraint: constraint,
-	}
 }
 
 // Error returns a human-readable description of the validation error.
@@ -201,29 +161,6 @@ type TimeValidationError struct {
 	MaxValue any
 }
 
-// newTimeValidationError creates a new TimeValidationError with the specified parameters.
-//
-//nolint:unused
-func newTimeValidationError(field string, value, min, max any) *TimeValidationError {
-	return &TimeValidationError{
-		baseError: baseError{
-			code:     ErrCodeOutOfBounds,
-			message:  fmt.Sprintf("time value out of bounds for %s", field),
-			original: nil,
-			context: map[string]any{
-				"field": field,
-				"value": value,
-				"min":   min,
-				"max":   max,
-			},
-		},
-		Field:    field,
-		Value:    value,
-		MinValue: min,
-		MaxValue: max,
-	}
-}
-
 // Error returns a human-readable description of the time validation error.
 func (e *TimeValidationError) Error() string {
 	return fmt.Sprintf("time value out of bounds for %s: %v (valid range: %v to %v)", e.Field, e.Value, e.MinValue, e.MaxValue)
@@ -235,36 +172,6 @@ type EraMismatchError struct {
 	ExpectedEra *Era
 	ActualEra   *Era
 	Details     string
-}
-
-// newEraMismatchError creates a new EraMismatchError with the specified parameters.
-//
-//nolint:unused
-func newEraMismatchError(expectedEra, actualEra *Era, details string) *EraMismatchError {
-	expectedStr := "CE"
-	if expectedEra != nil {
-		expectedStr = expectedEra.String()
-	}
-	actualStr := "CE"
-	if actualEra != nil {
-		actualStr = actualEra.String()
-	}
-
-	return &EraMismatchError{
-		baseError: baseError{
-			code:     ErrCodeEraMismatch,
-			message:  "era mismatch",
-			original: nil,
-			context: map[string]any{
-				"expected_era": expectedStr,
-				"actual_era":   actualStr,
-				"details":      details,
-			},
-		},
-		ExpectedEra: expectedEra,
-		ActualEra:   actualEra,
-		Details:     details,
-	}
 }
 
 // Error returns a human-readable description of the era mismatch error.

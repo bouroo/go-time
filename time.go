@@ -21,6 +21,7 @@ package time
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	stdtime "time"
 	"unsafe"
 
@@ -384,3 +385,131 @@ func convertBEYearToCE(value string) string {
 	})
 	return ceValue
 }
+
+// ParseWithLocale parses a time string using locale-aware era detection.
+// It automatically detects the appropriate era based on the locale
+// and the year value in the input.
+//
+// This is useful for parsing dates from different locales where the era
+// is not explicitly specified. For example, Thai dates will be parsed
+// as BE, while dates with no specific locale hint will use proximity-based
+// detection.
+//
+// The layout parameter specifies the expected format (e.g., "2006-01-02").
+// The locale parameter provides context for era detection (e.g., "th-TH", "ja-JP").
+//
+// Returns a ParseError if parsing fails.
+func ParseWithLocale(layout, value, locale string) (Time, error) {
+	// First try to detect era from locale
+	detectedEra := DetectEraForLocale(locale)
+
+	// If no locale-specific era, parse without era and detect from year
+	if detectedEra == nil {
+		t, err := stdtime.Parse(layout, value)
+		if err != nil {
+			return Time{}, newParseError(value, layout, nil, 0, err)
+		}
+
+		detectedEra = DetectEraFromYear(t.Year())
+		if detectedEra == nil {
+			detectedEra = CE()
+		}
+
+		// If detected as BE, convert year
+		if detectedEra == BE() {
+			ceYear := BE().ToCE(t.Year())
+			t = stdtime.Date(ceYear, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location())
+		}
+
+		return Time{Time: t, era: detectedEra}, nil
+	}
+
+	// Use detected era for parsing
+	return ParseWithEra(layout, value, detectedEra)
+}
+
+// ParseInLocationWithLocale parses a time string in a specific location
+// with locale-aware era detection.
+func ParseInLocationWithLocale(layout, value string, loc *stdtime.Location, locale string) (Time, error) {
+	// First try to detect era from locale
+	detectedEra := DetectEraForLocale(locale)
+
+	// If no locale-specific era, parse without era and detect from year
+	if detectedEra == nil {
+		t, err := stdtime.ParseInLocation(layout, value, loc)
+		if err != nil {
+			return Time{}, err
+		}
+
+		detectedEra = DetectEraFromYear(t.Year())
+		if detectedEra == nil {
+			detectedEra = CE()
+		}
+
+		// If detected as BE, convert year
+		if detectedEra == BE() {
+			ceYear := BE().ToCE(t.Year())
+			t = stdtime.Date(ceYear, t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), loc)
+		}
+
+		return Time{Time: t, era: detectedEra}, nil
+	}
+
+	// Use detected era for parsing
+	return ParseInLocationWithEra(layout, value, loc, detectedEra)
+}
+
+// EraParsingStats contains statistics about era parsing operations.
+type EraParsingStats struct {
+	TotalParsed        int
+	CEParsed           int
+	BEParsed           int
+	OtherEraParsed     int
+	LocaleDetected     int
+	YearDetected       int
+	LocaleYearDetected int
+}
+
+// GetEraParsingStats returns parsing statistics.
+// This can be used to monitor era detection effectiveness.
+func GetEraParsingStats() EraParsingStats {
+	parsingMu.Lock()
+	defer parsingMu.Unlock()
+
+	stats := EraParsingStats{
+		TotalParsed:        totalParsed,
+		CEParsed:           ceParsed,
+		BEParsed:           beParsed,
+		OtherEraParsed:     otherEraParsed,
+		LocaleDetected:     localeDetected,
+		YearDetected:       yearDetected,
+		LocaleYearDetected: localeYearDetected,
+	}
+
+	return stats
+}
+
+// ResetEraParsingStats resets the parsing statistics counters.
+func ResetEraParsingStats() {
+	parsingMu.Lock()
+	defer parsingMu.Unlock()
+
+	totalParsed = 0
+	ceParsed = 0
+	beParsed = 0
+	otherEraParsed = 0
+	localeDetected = 0
+	yearDetected = 0
+	localeYearDetected = 0
+}
+
+var (
+	parsingMu          sync.Mutex
+	totalParsed        int
+	ceParsed           int
+	beParsed           int
+	otherEraParsed     int
+	localeDetected     int
+	yearDetected       int
+	localeYearDetected int
+)

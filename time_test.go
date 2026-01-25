@@ -444,6 +444,75 @@ func TestTimeUnixTimestamp(t *testing.T) {
 	}
 }
 
+// TestZoneMethod tests the Zone() method returns correct timezone info
+func TestZoneMethod(t *testing.T) {
+	tests := []struct {
+		name     string
+		location string
+	}{
+		{"UTC timezone", "UTC"},
+		{"Bangkok timezone", "Asia/Bangkok"},
+		{"New York timezone", "America/New_York"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			loc, err := stdtime.LoadLocation(tt.location)
+			if err != nil {
+				t.Skipf("Failed to load location %s: %v", tt.location, err)
+			}
+
+			tm := Date(2024, 2, 29, 12, 30, 45, 0, loc)
+			beTime := tm.InEra(BE())
+
+			// Test CE time zone
+			name, offset := tm.Zone()
+			if name == "" {
+				t.Error("Zone() returned empty name for CE time")
+			}
+			if offset == 0 && tt.location != "UTC" {
+				t.Errorf("Expected non-zero offset for %s, got %d", tt.location, offset)
+			}
+
+			// Test BE time zone - should be identical
+			beName, beOffset := beTime.Zone()
+			if beName != name {
+				t.Errorf("BE Zone() name = %q, want %q", beName, name)
+			}
+			if beOffset != offset {
+				t.Errorf("BE Zone() offset = %d, want %d", beOffset, offset)
+			}
+		})
+	}
+}
+
+// TestInEraWithNilEra tests that InEra defaults to CE when given nil
+func TestInEraWithNilEra(t *testing.T) {
+	// Create time without explicit era
+	tm := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
+
+	// Call InEra with nil - should default to CE
+	result := tm.InEra(nil)
+
+	if !result.IsCE() {
+		t.Error("InEra(nil) should return CE era")
+	}
+	if result.Year() != 2024 {
+		t.Errorf("InEra(nil) year = %d, want 2024", result.Year())
+	}
+
+	// Also test explicit nil era on BE time
+	beTime := tm.InEra(BE())
+	beWithNil := beTime.InEra(nil)
+
+	if !beWithNil.IsCE() {
+		t.Error("BE.InEra(nil) should return CE era")
+	}
+	if beWithNil.Year() != 2024 {
+		t.Errorf("BE.InEra(nil) year = %d, want 2024", beWithNil.Year())
+	}
+}
+
 // TestStringRepresentation tests String() output
 func TestStringRepresentation(t *testing.T) {
 	tm := Date(2024, 2, 29, 12, 30, 45, 0, stdtime.UTC)
@@ -539,5 +608,122 @@ func TestGobEncoding(t *testing.T) {
 	}
 	if decoded.Nanosecond() != 123456789 {
 		t.Errorf("Nanoseconds lost: got %d, want 123456789", decoded.Nanosecond())
+	}
+}
+
+// TestSubDuration tests the Sub method for duration calculations
+func TestSubDuration(t *testing.T) {
+	tests := []struct {
+		name        string
+		t1          Time
+		t2          Time
+		expectedDur stdtime.Duration
+	}{
+		{"Same time", Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC), Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC), 0},
+		{"One hour apart", Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC), Date(2024, 2, 29, 13, 0, 0, 0, stdtime.UTC), -stdtime.Hour},
+		{"One hour earlier", Date(2024, 2, 29, 13, 0, 0, 0, stdtime.UTC), Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC), stdtime.Hour},
+		{"One day apart", Date(2024, 2, 28, 0, 0, 0, 0, stdtime.UTC), Date(2024, 2, 29, 0, 0, 0, 0, stdtime.UTC), -24 * stdtime.Hour},
+		{"Leap day difference", Date(2024, 2, 29, 0, 0, 0, 0, stdtime.UTC), Date(2024, 3, 1, 0, 0, 0, 0, stdtime.UTC), -24 * stdtime.Hour},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dur := tt.t1.Sub(tt.t2)
+			if dur != tt.expectedDur {
+				t.Errorf("Sub() = %v, want %v", dur, tt.expectedDur)
+			}
+		})
+	}
+}
+
+// TestSubPreservesEra tests that Sub preserves era information
+func TestSubPreservesEra(t *testing.T) {
+	ceTime := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC)
+	beTime := ceTime.InEra(BE())
+
+	// Sub two BE times
+	t1 := Date(2024, 2, 29, 12, 0, 0, 0, stdtime.UTC).InEra(BE())
+	t2 := Date(2024, 2, 29, 13, 0, 0, 0, stdtime.UTC).InEra(BE())
+
+	dur := t1.Sub(t2)
+	if dur != -stdtime.Hour {
+		t.Errorf("Sub(BE times) = %v, want %v", dur, -stdtime.Hour)
+	}
+
+	// Sub BE from CE - should still work (era is preserved on receiver)
+	dur2 := beTime.Sub(ceTime)
+	if dur2 != 0 {
+		t.Errorf("Sub(BE, CE) = %v, want 0", dur2)
+	}
+}
+
+// TestParseInLocationWrapper tests the ParseInLocation wrapper
+func TestParseInLocationWrapper(t *testing.T) {
+	bangkok, _ := stdtime.LoadLocation("Asia/Bangkok")
+
+	tests := []struct {
+		layout    string
+		value     string
+		loc       *stdtime.Location
+		expectErr bool
+	}{
+		{"2006-01-02", "2024-02-29", stdtime.UTC, false},
+		{"2006-01-02 15:04:05", "2024-02-29 12:30:45", stdtime.UTC, false},
+		{"2006-01-02", "invalid-date", stdtime.UTC, true},
+		{"2006-01-02", "2024-02-29", bangkok, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.layout, func(t *testing.T) {
+			result, err := ParseInLocation(tt.layout, tt.value, tt.loc)
+
+			if tt.expectErr {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if result.IsZero() && !tt.expectErr {
+					t.Error("Expected non-zero time")
+				}
+			}
+		})
+	}
+}
+
+// TestParseInLocationMatchesStdlib tests that ParseInLocation matches stdlib behavior
+func TestParseInLocationMatchesStdlib(t *testing.T) {
+	bangkok, _ := stdtime.LoadLocation("Asia/Bangkok")
+	loc, _ := stdtime.LoadLocation("America/New_York")
+
+	tests := []struct {
+		layout string
+		value  string
+		loc    *stdtime.Location
+	}{
+		{"2006-01-02", "2024-02-29", stdtime.UTC},
+		{"2006-01-02 15:04:05", "2024-02-29 12:30:45", stdtime.UTC},
+		{"2006-01-02", "2024-02-29", bangkok},
+		{"2006-01-02 15:04:05", "2024-02-29 12:30:45", loc},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.layout+":"+tt.loc.String(), func(t *testing.T) {
+			result1, err1 := ParseInLocation(tt.layout, tt.value, tt.loc)
+			result2, err2 := stdtime.ParseInLocation(tt.layout, tt.value, tt.loc)
+
+			if (err1 == nil) != (err2 == nil) {
+				t.Errorf("Error mismatch: gotime=%v, stdlib=%v", err1, err2)
+				return
+			}
+
+			if err1 == nil {
+				if !result1.Equal(result2) {
+					t.Errorf("Result mismatch: gotime=%v, stdlib=%v", result1, result2)
+				}
+			}
+		})
 	}
 }

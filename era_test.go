@@ -3,6 +3,7 @@ package time
 import (
 	"sync"
 	"testing"
+	stdtime "time"
 )
 
 // TestEraConversionRealWorld tests era conversions with real-world scenarios
@@ -312,5 +313,331 @@ func TestEraDetectionFromYear(t *testing.T) {
 					detected, tt.expectedEra, tt.year)
 			}
 		})
+	}
+}
+
+// TestRegisterEraWithOptions tests registering eras with full options
+func TestRegisterEraWithOptions(t *testing.T) {
+	// Test simple era registration
+	era := RegisterEraWithOptions(EraOptions{
+		Name:   "TestEraOptions",
+		Offset: 100,
+	})
+	if era == nil {
+		t.Fatal("RegisterEraWithOptions returned nil")
+	}
+	if era.String() != "TestEraOptions" {
+		t.Errorf("String() = %q, want %q", era.String(), "TestEraOptions")
+	}
+	if era.Offset() != 100 {
+		t.Errorf("Offset() = %d, want %d", era.Offset(), 100)
+	}
+
+	// Test duplicate registration returns existing era
+	era2 := RegisterEraWithOptions(EraOptions{
+		Name:   "TestEraOptions",
+		Offset: 999, // Different offset - should be ignored
+	})
+	if era2 != era {
+		t.Error("Duplicate registration should return existing era")
+	}
+
+	// Test empty name returns nil
+	nilEra := RegisterEraWithOptions(EraOptions{
+		Name:   "",
+		Offset: 100,
+	})
+	if nilEra != nil {
+		t.Error("Empty name should return nil")
+	}
+}
+
+// TestEraWithOptionsFullConfig tests era with full configuration
+func TestEraWithOptionsFullConfig(t *testing.T) {
+	era := RegisterEraWithOptions(EraOptions{
+		Name:      "FullConfigEra",
+		Offset:    2000,
+		Family:    "CustomFamily",
+		Locale:    "test-LOC",
+		Names:     map[string]string{"en-US": "Full Config Era", "ja-JP": "完全な設定時代"},
+		StartDate: stdtime.Date(2020, 1, 1, 0, 0, 0, 0, stdtime.UTC),
+		EndDate:   stdtime.Date(2030, 12, 31, 23, 59, 59, 0, stdtime.UTC),
+		Format: &EraFormat{
+			Prefix:     "FC-",
+			Suffix:     "-E",
+			YearDigits: 2,
+			ZeroBased:  false,
+		},
+	})
+
+	if era == nil {
+		t.Fatal("Failed to create era with full config")
+	}
+
+	// Test basic properties
+	if era.String() != "FullConfigEra" {
+		t.Errorf("String() = %q, want %q", era.String(), "FullConfigEra")
+	}
+	if era.Offset() != 2000 {
+		t.Errorf("Offset() = %d, want %d", era.Offset(), 2000)
+	}
+	if era.Family() != "CustomFamily" {
+		t.Errorf("Family() = %q, want %q", era.Family(), "CustomFamily")
+	}
+	if era.Locale() != "test-LOC" {
+		t.Errorf("Locale() = %q, want %q", era.Locale(), "test-LOC")
+	}
+
+	// Test start/end dates
+	startDate := era.StartDate()
+	if startDate.Year() != 2020 || startDate.Month() != 1 || startDate.Day() != 1 {
+		t.Errorf("StartDate() = %v, want 2020-01-01", startDate)
+	}
+
+	endDate := era.EndDate()
+	if endDate.Year() != 2030 || endDate.Month() != 12 || endDate.Day() != 31 {
+		t.Errorf("EndDate() = %v, want 2030-12-31", endDate)
+	}
+
+	// Test names
+	if era.NameForLocale("en-US") != "Full Config Era" {
+		t.Errorf("NameForLocale(en-US) = %q, want %q", era.NameForLocale("en-US"), "Full Config Era")
+	}
+	if era.NameForLocale("ja-JP") != "完全な設定時代" {
+		t.Errorf("NameForLocale(ja-JP) = %q, want %q", era.NameForLocale("ja-JP"), "完全な設定時代")
+	}
+	// Test missing locale returns default name
+	if era.NameForLocale("xx-XX") != "FullConfigEra" {
+		t.Errorf("NameForLocale(xx-XX) = %q, want %q", era.NameForLocale("xx-XX"), "FullConfigEra")
+	}
+
+	// Test format
+	format := era.Format()
+	if format == nil {
+		t.Fatal("Format() returned nil")
+	}
+	if format.Prefix != "FC-" {
+		t.Errorf("Format().Prefix = %q, want %q", format.Prefix, "FC-")
+	}
+	if format.Suffix != "-E" {
+		t.Errorf("Format().Suffix = %q, want %q", format.Suffix, "-E")
+	}
+	if format.YearDigits != 2 {
+		t.Errorf("Format().YearDigits = %d, want %d", format.YearDigits, 2)
+	}
+	if format.ZeroBased != false {
+		t.Errorf("Format().ZeroBased = %v, want %v", format.ZeroBased, false)
+	}
+}
+
+// TestEraTransitions tests era transition registration and retrieval
+func TestEraTransitions(t *testing.T) {
+	// Register a family with transitions
+	familyName := "TestFamily"
+
+	// Register multiple eras for the same family
+	era1 := RegisterEraWithOptions(EraOptions{
+		Name:   "Era1",
+		Offset: 100,
+		Family: familyName,
+	})
+	era2 := RegisterEraWithOptions(EraOptions{
+		Name:   "Era2",
+		Offset: 200,
+		Family: familyName,
+	})
+	era3 := RegisterEraWithOptions(EraOptions{
+		Name:   "Era3",
+		Offset: 300,
+		Family: familyName,
+	})
+
+	// Register transitions (out of order to test sorting)
+	err := RegisterEraTransition(familyName, era3, stdtime.Date(2030, 1, 1, 0, 0, 0, 0, stdtime.UTC))
+	if err != nil {
+		t.Fatalf("RegisterEraTransition failed: %v", err)
+	}
+
+	err = RegisterEraTransition(familyName, era2, stdtime.Date(2020, 1, 1, 0, 0, 0, 0, stdtime.UTC))
+	if err != nil {
+		t.Fatalf("RegisterEraTransition failed: %v", err)
+	}
+
+	err = RegisterEraTransition(familyName, era1, stdtime.Date(2010, 1, 1, 0, 0, 0, 0, stdtime.UTC))
+	if err != nil {
+		t.Fatalf("RegisterEraTransition failed: %v", err)
+	}
+
+	// Test GetEraForDate
+	tests := []struct {
+		date     string
+		expected *Era
+	}{
+		{"2009-12-31", nil},  // Before first transition
+		{"2010-01-01", era1}, // At first transition
+		{"2015-01-01", era1}, // During era1
+		{"2020-01-01", era2}, // At second transition
+		{"2025-01-01", era2}, // During era2
+		{"2030-01-01", era3}, // At third transition
+		{"2035-01-01", era3}, // During era3
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.date, func(t *testing.T) {
+			parsed, err := stdtime.Parse("2006-01-02", tt.date)
+			if err != nil {
+				t.Fatalf("Failed to parse date %q: %v", tt.date, err)
+			}
+			era := GetEraForDate(parsed, familyName)
+			if era != tt.expected {
+				t.Errorf("GetEraForDate(%q) = %v, want %v", tt.date, era, tt.expected)
+			}
+		})
+	}
+}
+
+// TestLocaleDefaultEra tests locale-to-era default mapping
+func TestLocaleDefaultEra(t *testing.T) {
+	// Create a test era
+	testEra := RegisterEraWithOptions(EraOptions{
+		Name:   "TestLocaleEra",
+		Offset: 100,
+	})
+
+	// Set default for locale
+	SetLocaleDefaultEra("test-XX", testEra)
+
+	// Verify detection
+	detected := DetectEraForLocale("test-XX")
+	if detected != testEra {
+		t.Errorf("DetectEraForLocale(test-XX) = %v, want %v", detected, testEra)
+	}
+
+	// Test GetLocaleDefaultEra
+	retrieved := GetLocaleDefaultEra("test-XX")
+	if retrieved != testEra {
+		t.Errorf("GetLocaleDefaultEra(test-XX) = %v, want %v", retrieved, testEra)
+	}
+
+	// Test ClearLocaleDefaultEra
+	ClearLocaleDefaultEra("test-XX")
+	cleared := GetLocaleDefaultEra("test-XX")
+	if cleared != nil {
+		t.Errorf("After clear, GetLocaleDefaultEra(test-XX) = %v, want nil", cleared)
+	}
+
+	// Test that built-in th-TH still works
+	if DetectEraForLocale("th-TH") != BE() {
+		t.Errorf("DetectEraForLocale(th-TH) = %v, want %v", DetectEraForLocale("th-TH"), BE())
+	}
+}
+
+// TestEraFamilyNames tests listing family names
+func TestEraFamilyNames(t *testing.T) {
+	// Register some eras with families
+	RegisterEraWithOptions(EraOptions{
+		Name:   "Family1Era1",
+		Offset: 100,
+		Family: "Family1",
+	})
+	RegisterEraWithOptions(EraOptions{
+		Name:   "Family1Era2",
+		Offset: 200,
+		Family: "Family1",
+	})
+	RegisterEraWithOptions(EraOptions{
+		Name:   "Family2Era1",
+		Offset: 300,
+		Family: "Family2",
+	})
+
+	families := EraFamilyNames()
+
+	// Should have at least Family1 and Family2
+	found := make(map[string]bool)
+	for _, f := range families {
+		found[f] = true
+	}
+
+	if !found["Family1"] {
+		t.Error("Family1 not found in EraFamilyNames()")
+	}
+	if !found["Family2"] {
+		t.Error("Family2 not found in EraFamilyNames()")
+	}
+}
+
+// TestGetErasInFamily tests retrieving eras by family
+func TestGetErasInFamily(t *testing.T) {
+	// Register eras in different families
+	RegisterEraWithOptions(EraOptions{
+		Name:   "TestFamilyEra1",
+		Offset: 100,
+		Family: "TestFamily",
+	})
+	RegisterEraWithOptions(EraOptions{
+		Name:   "TestFamilyEra2",
+		Offset: 200,
+		Family: "TestFamily",
+	})
+
+	eras := GetErasInFamily("TestFamily")
+	if len(eras) < 2 {
+		t.Errorf("Expected at least 2 eras in TestFamily, got %d", len(eras))
+	}
+
+	// Test non-existent family
+	empty := GetErasInFamily("NonExistent")
+	if len(empty) != 0 {
+		t.Errorf("Expected 0 eras for non-existent family, got %d", len(empty))
+	}
+}
+
+// TestIsValidForDate tests era date validity checking
+func TestIsValidForDate(t *testing.T) {
+	era := RegisterEraWithOptions(EraOptions{
+		Name:      "DateRangeEra",
+		Offset:    100,
+		StartDate: stdtime.Date(2020, 1, 1, 0, 0, 0, 0, stdtime.UTC),
+		EndDate:   stdtime.Date(2030, 12, 31, 23, 59, 59, 0, stdtime.UTC),
+	})
+
+	tests := []struct {
+		date     string
+		expected bool
+	}{
+		{"2019-12-31", false}, // Before start
+		{"2020-01-01", true},  // At start
+		{"2025-01-01", true},  // During
+		{"2030-12-31", true},  // At end
+		{"2031-01-01", false}, // After end
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.date, func(t *testing.T) {
+			parsed, err := stdtime.Parse("2006-01-02", tt.date)
+			if err != nil {
+				t.Fatalf("Failed to parse date %q: %v", tt.date, err)
+			}
+			if got := era.IsValidForDate(parsed); got != tt.expected {
+				t.Errorf("IsValidForDate(%q) = %v, want %v", tt.date, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestYearInEra tests year-in-era calculation
+func TestYearInEra(t *testing.T) {
+	era := RegisterEraWithOptions(EraOptions{
+		Name:   "YearCalcEra",
+		Offset: 100,
+	})
+
+	date := stdtime.Date(2024, 6, 15, 0, 0, 0, 0, stdtime.UTC)
+	yearInEra := era.YearInEra(date)
+
+	expected := era.FromCE(2024)
+	if yearInEra != expected {
+		t.Errorf("YearInEra(2024) = %d, want %d", yearInEra, expected)
 	}
 }
