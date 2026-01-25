@@ -27,6 +27,7 @@
 package time
 
 import (
+	"sort"
 	"sync"
 	stdtime "time"
 
@@ -426,15 +427,9 @@ func RegisterEraTransition(family string, newEra *Era, startDate stdtime.Time) e
 	familyTransitions[family] = append(familyTransitions[family], transition)
 
 	// Sort transitions by start date
-	// (simple bubble sort for small lists - switch to sort.Slice for larger)
-	for i := 0; i < len(familyTransitions[family])-1; i++ {
-		for j := 0; j < len(familyTransitions[family])-i-1; j++ {
-			if familyTransitions[family][j].start.After(familyTransitions[family][j+1].start) {
-				familyTransitions[family][j], familyTransitions[family][j+1] =
-					familyTransitions[family][j+1], familyTransitions[family][j]
-			}
-		}
-	}
+	sort.Slice(familyTransitions[family], func(i, j int) bool {
+		return familyTransitions[family][i].start.Before(familyTransitions[family][j].start)
+	})
 
 	return nil
 }

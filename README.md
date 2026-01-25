@@ -34,7 +34,7 @@ beTime := time.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC).InEra(time.BE())
 
 // Format with Thai month names
 thai := beTime.FormatLocale(time.LocaleThTH, "02 January 2006")
-// Output: "2 มกราคม 2549"
+// Output: "29 กุมภาพันธ์ 2567"
 
 // Format day of week in Thai
 dayName := beTime.FormatLocale(time.LocaleThTH, "Monday")
@@ -101,7 +101,7 @@ beTime := time.Date(2024, 2, 29, 12, 0, 0, 0, time.UTC).InEra(time.BE())
 beTime.Format("2006-01-02")  // "2567-02-29"
 
 // Thai locale translations
-beTime.FormatLocale(time.LocaleThTH, "02 January 2006")  // "2 มกราคม 2549"
+beTime.FormatLocale(time.LocaleThTH, "02 January 2006")  // "29 กุมภาพันธ์ 2567"
 beTime.FormatLocale(time.LocaleThTH, "Monday")           // "จันทร์"
 beTime.FormatLocale(time.LocaleThTH, "Mon")              // "จ."
 ```

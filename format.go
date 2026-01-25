@@ -321,6 +321,24 @@ func replaceThaiLocale(s string) string {
 	return thaiLocaleReplacer.Replace(s)
 }
 
+// isWordChar checks if a character is a word character.
+// Word characters include: letters (a-z, A-Z), digits (0-9), and underscore (_).
+func isWordChar(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+
+// isWordBoundaryBefore checks if there's a word boundary before the given position.
+// Returns true if at start of string or previous character is not a word character.
+func isWordBoundaryBefore(s string, pos int) bool {
+	return pos == 0 || !isWordChar(s[pos-1])
+}
+
+// isWordBoundaryAfter checks if there's a word boundary after the given position.
+// Returns true if at end of string or next character is not a word character.
+func isWordBoundaryAfter(s string, pos int) bool {
+	return pos >= len(s) || !isWordChar(s[pos])
+}
+
 // replaceYearInFormatted replaces year numbers in formatted output with era year.
 // Uses manual character-by-character parsing instead of regex for better performance.
 // This approach avoids regex allocations and provides O(n) single-pass replacement.
@@ -383,8 +401,8 @@ func replaceYearInFormatted(formatted string, eraYear int) string {
 				j++
 			}
 			if j-i == 4 {
-				// Check for word boundary after (next char is not alphanumeric)
-				if j >= len(formatted) || (formatted[j] < '0' || formatted[j] > '9') && (formatted[j] < 'a' || formatted[j] > 'z') && (formatted[j] < 'A' || formatted[j] > 'Z') {
+				// Check for word boundaries before and after
+				if isWordBoundaryBefore(formatted, i) && isWordBoundaryAfter(formatted, j) {
 					// This is a 4-digit year, replace it
 					resultBuilder.Write(yearStr)
 					i = j
@@ -401,8 +419,8 @@ func replaceYearInFormatted(formatted string, eraYear int) string {
 				j++
 			}
 			if j-i == 2 {
-				// Check for word boundary after
-				if j >= len(formatted) || (formatted[j] < '0' || formatted[j] > '9') && (formatted[j] < 'a' || formatted[j] > 'z') && (formatted[j] < 'A' || formatted[j] > 'Z') {
+				// Check for word boundaries before and after
+				if isWordBoundaryBefore(formatted, i) && isWordBoundaryAfter(formatted, j) {
 					// Check if this matches the current short year
 					if formatted[i:i+2] == currentShortYear {
 						resultBuilder.Write(shortYearStr)
