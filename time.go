@@ -21,7 +21,6 @@ package time
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	stdtime "time"
 	"unsafe"
 
@@ -458,58 +457,3 @@ func ParseInLocationWithLocale(layout, value string, loc *stdtime.Location, loca
 	// Use detected era for parsing
 	return ParseInLocationWithEra(layout, value, loc, detectedEra)
 }
-
-// EraParsingStats contains statistics about era parsing operations.
-type EraParsingStats struct {
-	TotalParsed        int
-	CEParsed           int
-	BEParsed           int
-	OtherEraParsed     int
-	LocaleDetected     int
-	YearDetected       int
-	LocaleYearDetected int
-}
-
-// GetEraParsingStats returns parsing statistics.
-// This can be used to monitor era detection effectiveness.
-func GetEraParsingStats() EraParsingStats {
-	parsingMu.Lock()
-	defer parsingMu.Unlock()
-
-	stats := EraParsingStats{
-		TotalParsed:        totalParsed,
-		CEParsed:           ceParsed,
-		BEParsed:           beParsed,
-		OtherEraParsed:     otherEraParsed,
-		LocaleDetected:     localeDetected,
-		YearDetected:       yearDetected,
-		LocaleYearDetected: localeYearDetected,
-	}
-
-	return stats
-}
-
-// ResetEraParsingStats resets the parsing statistics counters.
-func ResetEraParsingStats() {
-	parsingMu.Lock()
-	defer parsingMu.Unlock()
-
-	totalParsed = 0
-	ceParsed = 0
-	beParsed = 0
-	otherEraParsed = 0
-	localeDetected = 0
-	yearDetected = 0
-	localeYearDetected = 0
-}
-
-var (
-	parsingMu          sync.Mutex
-	totalParsed        int
-	ceParsed           int
-	beParsed           int
-	otherEraParsed     int
-	localeDetected     int
-	yearDetected       int
-	localeYearDetected int
-)
