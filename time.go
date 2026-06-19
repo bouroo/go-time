@@ -19,7 +19,6 @@
 package time
 
 import (
-	"fmt"
 	"strconv"
 	stdtime "time"
 	"unsafe"
@@ -378,7 +377,7 @@ func convertBEYearToCE(value string) string {
 		}
 		if DetectEraFromYear(year) == BE() {
 			ceYear := BE().ToCE(year)
-			return fmt.Sprintf("%d", ceYear)
+			return strconv.Itoa(ceYear)
 		}
 		return match
 	})
