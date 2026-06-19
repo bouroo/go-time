@@ -334,7 +334,7 @@ func ParseThai(layout, value string) (Time, error) {
 
 	t, err := stdtime.Parse(layout, converted)
 	if err != nil {
-		return Time{}, err
+		return Time{}, newParseError(value, layout, nil, 0, err)
 	}
 
 	detectedEra := DetectEraFromYear(t.Year())
@@ -357,7 +357,7 @@ func ParseThaiInLocation(layout, value string, loc *stdtime.Location) (Time, err
 
 	t, err := stdtime.ParseInLocation(layout, converted, loc)
 	if err != nil {
-		return Time{}, err
+		return Time{}, newParseError(value, layout, nil, 0, err)
 	}
 
 	detectedEra := DetectEraFromYear(t.Year())
