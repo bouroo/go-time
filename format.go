@@ -622,26 +622,6 @@ func formatEraYear(year int, format *EraFormat) string {
 	}
 }
 
-// replaceYearInFormattedWithEraString replaces year numbers with era-specific string.
-func replaceYearInFormattedWithEraString(formatted string, eraYearStr string) string {
-	// Use the standard replace function but with era year string
-	return replaceYearInFormatted(formatted, parseEraYear(eraYearStr))
-}
-
-// parseEraYear parses an era year string to an integer.
-func parseEraYear(s string) int {
-	// Handle Japanese "元" (gannen/first year)
-	if s == "元" {
-		return 1
-	}
-
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return 0
-	}
-	return n
-}
-
 // EraFormatStats returns formatting statistics for an era.
 // This can be used to monitor formatting performance.
 type EraFormatStats struct {
