@@ -3,7 +3,9 @@ package internal
 import (
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
+	"unsafe"
 )
 
 // BuilderPool tests
@@ -394,6 +396,79 @@ func TestStringReplacerReplaceAll(t *testing.T) {
 	noMatchResult := sr.ReplaceAll("No matches here")
 	if noMatchResult != "No matches here" {
 		t.Errorf("ReplaceAll no match = %q, want %q", noMatchResult, "No matches here")
+	}
+}
+
+// eraCacheMapSize counts the live entries in the cache's sync.Map.
+// Used by tests to verify that LRU eviction actually shrinks the map.
+func eraCacheMapSize(ec *EraCache) int {
+	cachePtr := ec.cache.Load().(*sync.Map)
+	n := 0
+	cachePtr.Range(func(_, _ any) bool {
+		n++
+		return true
+	})
+	return n
+}
+
+// TestEraCache_EvictionActuallyRemovesFromMap verifies that when the cache
+// is full and a new key is set, the evicted entry is actually deleted from
+// the underlying sync.Map — not just from the LRU list.
+//
+// Bug #5: internal/era_cache.go Set() stores the new entry into the
+// sync.Map BEFORE evicting from the LRU, so the new key is added to the
+// LRU front after eviction; sync.Map grows unbounded while LRU stays bounded.
+func TestEraCache_EvictionActuallyRemovesFromMap(t *testing.T) {
+	dummy := &struct{}{}
+	ec := NewEraCache(3)
+
+	for i := 0; i < 3; i++ {
+		ec.Set(i, unsafe.Pointer(dummy), i+100)
+	}
+	if got := eraCacheMapSize(ec); got != 3 {
+		t.Fatalf("after 3 sets, sync.Map size = %d, want 3", got)
+	}
+
+	ec.Set(99, unsafe.Pointer(dummy), 199)
+
+	got := eraCacheMapSize(ec)
+	if got > 3 {
+		t.Errorf("after 4th set on cache(maxSize=3), sync.Map size = %d, want <= 3 (eviction must remove from sync.Map)", got)
+	}
+}
+
+// TestEraCache_DoesNotExceedMaxSize verifies the sync.Map does not exceed
+// maxSize after many distinct Sets.
+//
+// Bug #5: see above.
+func TestEraCache_DoesNotExceedMaxSize(t *testing.T) {
+	dummy := &struct{}{}
+	ec := NewEraCache(5)
+
+	for i := 0; i < 50; i++ {
+		ec.Set(i, unsafe.Pointer(dummy), i+100)
+		if got := eraCacheMapSize(ec); got > 5 {
+			t.Fatalf("after %d sets on cache(maxSize=5), sync.Map size = %d, want <= 5", i+1, got)
+		}
+	}
+}
+
+// TestEraCache_ReSetDoesNotDuplicateLRU verifies that setting the same
+// key twice does not create a duplicate LRU node.
+//
+// Bug #6: internal/era_cache.go addToFront unconditionally appends a new
+// node, so re-Setting an existing key inflates the LRU list size past
+// maxSize and breaks eviction ordering.
+func TestEraCache_ReSetDoesNotDuplicateLRU(t *testing.T) {
+	dummy := &struct{}{}
+	ec := NewEraCache(5)
+
+	ec.Set(2024, unsafe.Pointer(dummy), 2567)
+	ec.Set(2024, unsafe.Pointer(dummy), 2567)
+	ec.Set(2024, unsafe.Pointer(dummy), 2567)
+
+	if got := ec.lruList.size; got != 1 {
+		t.Errorf("after re-Setting same key 3 times, lruList.size = %d, want 1 (Bug #6: addToFront does not dedup)", got)
 	}
 }
 

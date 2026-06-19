@@ -15,13 +15,13 @@
 //
 // The global era cache (globalEraCache) uses sync.Map for lock-free reads
 // and atomic operations for writes, ensuring optimal performance under
-// concurrent access.
+// concurrent access. The cache is a bounded LRU: the underlying sync.Map
+// stays at or below the configured max size, and re-setting the same key
+// does not duplicate entries.
 package time
 
 import (
-	"fmt"
 	"strconv"
-	"sync"
 	stdtime "time"
 	"unsafe"
 
@@ -328,13 +328,14 @@ func ParseInLocationWithEra(layout, value string, loc *stdtime.Location, era *Er
 // ParseThai parses a time string that may contain Thai month and day names.
 // It automatically detects whether the year is in BE or CE format based on
 // proximity to the current year, and returns a Time with the detected era.
+// Returns a ParseError if parsing fails.
 func ParseThai(layout, value string) (Time, error) {
 	converted := replaceThaiMonthNames(value)
 	converted = replaceThaiDayNames(converted)
 
 	t, err := stdtime.Parse(layout, converted)
 	if err != nil {
-		return Time{}, err
+		return Time{}, newParseError(value, layout, nil, 0, err)
 	}
 
 	detectedEra := DetectEraFromYear(t.Year())
@@ -351,13 +352,14 @@ func ParseThai(layout, value string) (Time, error) {
 // ParseThaiInLocation parses a time string with Thai month and day names
 // in a specific location. It automatically detects whether the year is in
 // BE or CE format based on proximity to the current year.
+// Returns a ParseError if parsing fails.
 func ParseThaiInLocation(layout, value string, loc *stdtime.Location) (Time, error) {
 	converted := replaceThaiMonthNames(value)
 	converted = replaceThaiDayNames(converted)
 
 	t, err := stdtime.ParseInLocation(layout, converted, loc)
 	if err != nil {
-		return Time{}, err
+		return Time{}, newParseError(value, layout, nil, 0, err)
 	}
 
 	detectedEra := DetectEraFromYear(t.Year())
@@ -379,7 +381,7 @@ func convertBEYearToCE(value string) string {
 		}
 		if DetectEraFromYear(year) == BE() {
 			ceYear := BE().ToCE(year)
-			return fmt.Sprintf("%d", ceYear)
+			return strconv.Itoa(ceYear)
 		}
 		return match
 	})
@@ -458,58 +460,3 @@ func ParseInLocationWithLocale(layout, value string, loc *stdtime.Location, loca
 	// Use detected era for parsing
 	return ParseInLocationWithEra(layout, value, loc, detectedEra)
 }
-
-// EraParsingStats contains statistics about era parsing operations.
-type EraParsingStats struct {
-	TotalParsed        int
-	CEParsed           int
-	BEParsed           int
-	OtherEraParsed     int
-	LocaleDetected     int
-	YearDetected       int
-	LocaleYearDetected int
-}
-
-// GetEraParsingStats returns parsing statistics.
-// This can be used to monitor era detection effectiveness.
-func GetEraParsingStats() EraParsingStats {
-	parsingMu.Lock()
-	defer parsingMu.Unlock()
-
-	stats := EraParsingStats{
-		TotalParsed:        totalParsed,
-		CEParsed:           ceParsed,
-		BEParsed:           beParsed,
-		OtherEraParsed:     otherEraParsed,
-		LocaleDetected:     localeDetected,
-		YearDetected:       yearDetected,
-		LocaleYearDetected: localeYearDetected,
-	}
-
-	return stats
-}
-
-// ResetEraParsingStats resets the parsing statistics counters.
-func ResetEraParsingStats() {
-	parsingMu.Lock()
-	defer parsingMu.Unlock()
-
-	totalParsed = 0
-	ceParsed = 0
-	beParsed = 0
-	otherEraParsed = 0
-	localeDetected = 0
-	yearDetected = 0
-	localeYearDetected = 0
-}
-
-var (
-	parsingMu          sync.Mutex
-	totalParsed        int
-	ceParsed           int
-	beParsed           int
-	otherEraParsed     int
-	localeDetected     int
-	yearDetected       int
-	localeYearDetected int
-)

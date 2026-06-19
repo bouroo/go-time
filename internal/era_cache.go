@@ -51,8 +51,9 @@ type EraCache struct {
 	cache   atomic.Value // stores *sync.Map for safe atomic swap
 	maxSize int
 	stats   CacheStats
-	mu      sync.Mutex // Protects LRU list only
-	lruList *lruList   // For LRU eviction (optional)
+	mu      sync.Mutex            // Protects LRU list and index
+	lruList *lruList              // For LRU eviction
+	index   map[cacheKey]*lruNode // O(1) lookup of LRU nodes by key
 }
 
 // cacheKey represents a unique cache entry key combining CE year and era pointer.
@@ -101,6 +102,7 @@ func NewEraCache(maxSize int) *EraCache {
 	ec := &EraCache{
 		maxSize: maxSize,
 		lruList: newLRUList(),
+		index:   make(map[cacheKey]*lruNode, maxSize),
 	}
 	ec.cache.Store(&sync.Map{})
 	return ec
@@ -143,28 +145,25 @@ func (ec *EraCache) Set(ceYear int, era unsafe.Pointer, eraYear int) {
 		era:    era,
 	}
 
-	// Store the new entry first (lock-free, sync.Map handles concurrency)
-	// This ensures the entry is available even if eviction fails
-	cachePtr := ec.cache.Load().(*sync.Map)
-	cachePtr.Store(key, eraYear)
-
-	// Check if we need eviction - acquire mutex only for LRU management
-	// This is called after Store to minimize mutex hold time
 	ec.mu.Lock()
+	cachePtr := ec.cache.Load().(*sync.Map)
 	if ec.lruList != nil {
-		// Check if we need to evict before adding to LRU
-		if ec.lruList.size >= ec.maxSize {
-			evictedKey := ec.lruList.removeLeastRecent()
-			if evictedKey.ceYear != 0 {
-				// Delete from current cache
-				cachePtr := ec.cache.Load().(*sync.Map)
+		if existing, ok := ec.index[key]; ok {
+			ec.lruList.moveToFront(existing)
+		} else {
+			if ec.lruList.size >= ec.maxSize {
+				evictedKey := ec.lruList.removeLeastRecent()
+				if evicted, ok := ec.index[evictedKey]; ok && evicted != nil {
+					delete(ec.index, evictedKey)
+				}
 				cachePtr.Delete(evictedKey)
 				ec.stats.Evictions++
 			}
+			node := ec.lruList.addToFront(key)
+			ec.index[key] = node
 		}
-		// Add to LRU list
-		ec.lruList.addToFront(key)
 	}
+	cachePtr.Store(key, eraYear)
 	ec.mu.Unlock()
 }
 
@@ -186,10 +185,11 @@ func (ec *EraCache) Clear() {
 	// Create a new empty sync.Map and atomically swap it
 	ec.cache.Store(&sync.Map{})
 
-	// Reset LRU list
+	// Reset LRU list and index
 	if ec.lruList != nil {
 		ec.lruList = newLRUList()
 	}
+	ec.index = make(map[cacheKey]*lruNode, ec.maxSize)
 
 	// Reset stats
 	atomic.StoreUint64(&ec.stats.Hits, 0)
@@ -226,8 +226,9 @@ func newLRUList() *lruList {
 	}
 }
 
-// addToFront adds a key to the front of the LRU list.
-func (l *lruList) addToFront(key cacheKey) {
+// addToFront adds a key to the front of the LRU list and returns the new node.
+// The caller is responsible for inserting the returned node into the index.
+func (l *lruList) addToFront(key cacheKey) *lruNode {
 	node := &lruNode{key: key}
 	if l.head == nil {
 		l.head = node
@@ -238,20 +239,51 @@ func (l *lruList) addToFront(key cacheKey) {
 		l.head = node
 	}
 	l.size++
+	return node
 }
 
 // removeLeastRecent removes and returns the least recently used key.
+// The caller is responsible for deleting the returned key from the index.
 func (l *lruList) removeLeastRecent() cacheKey {
 	if l.tail == nil {
 		return cacheKey{}
 	}
-	key := l.tail.key
-	l.tail = l.tail.prev
+	node := l.tail
+	l.tail = node.prev
 	if l.tail == nil {
 		l.head = nil
 	} else {
 		l.tail.next = nil
 	}
+	node.prev = nil
+	node.next = nil
 	l.size--
-	return key
+	return node.key
+}
+
+// moveToFront moves an existing node to the front of the LRU list.
+func (l *lruList) moveToFront(node *lruNode) {
+	if node == nil || l.head == node {
+		return
+	}
+	// Detach node from its current position
+	if node.prev != nil {
+		node.prev.next = node.next
+	}
+	if node.next != nil {
+		node.next.prev = node.prev
+	}
+	if node == l.tail {
+		l.tail = node.prev
+	}
+	// Insert at front
+	node.prev = nil
+	node.next = l.head
+	if l.head != nil {
+		l.head.prev = node
+	}
+	l.head = node
+	if l.tail == nil {
+		l.tail = node
+	}
 }

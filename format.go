@@ -353,20 +353,35 @@ func isWordBoundaryAfter(s string, pos int) bool {
 // heap allocations for the common case of year formatting.
 func replaceYearInFormatted(formatted string, eraYear int) string {
 	// Pre-compute year strings using strconv for efficiency
-	// Using fixed-size arrays to avoid heap allocations for small buffers
-	var yearBuf [4]byte
-	yearStr := strconv.AppendInt(yearBuf[:0], int64(eraYear), 10)
-	// Pad to 4 digits with leading zeros
-	for len(yearStr) < 4 {
-		yearStr = append(yearStr, '0')
+	// Using a 20-byte buffer to safely hold any int64 (max 19 digits + sign).
+	// Left-pad to 4 digits in-place to stay stack-only (no extra allocation).
+	var yearBuf [20]byte
+	digits := strconv.AppendInt(yearBuf[:0], int64(eraYear), 10)
+	var yearStr []byte
+	if len(digits) >= 4 {
+		yearStr = digits
+	} else {
+		pad := 4 - len(digits)
+		// Shift digits right by `pad` and fill leading positions with '0'.
+		// Safe overlap: copy handles overlapping regions correctly.
+		copy(yearBuf[pad:4], digits)
+		for i := 0; i < pad; i++ {
+			yearBuf[i] = '0'
+		}
+		yearStr = yearBuf[:4]
 	}
 
-	// Format short year (2 digits)
-	var shortYearBuf [2]byte
-	shortYearStr := strconv.AppendInt(shortYearBuf[:0], int64(eraYear%100), 10)
-	// Pad to 2 digits with leading zeros
-	for len(shortYearStr) < 2 {
-		shortYearStr = append(shortYearStr, '0')
+	// Format short year (2 digits) — same left-pad-in-place technique.
+	var shortYearBuf [20]byte
+	shortDigits := strconv.AppendInt(shortYearBuf[:0], int64(eraYear%100), 10)
+	var shortYearStr []byte
+	if len(shortDigits) >= 2 {
+		shortYearStr = shortDigits[:2]
+	} else {
+		pad := 2 - len(shortDigits)
+		copy(shortYearBuf[pad:2], shortDigits)
+		shortYearBuf[0] = '0'
+		shortYearStr = shortYearBuf[:2]
 	}
 
 	// Get reference year's last 2 digits
@@ -421,8 +436,10 @@ func replaceYearInFormatted(formatted string, eraYear int) string {
 			if j-i == 2 {
 				// Check for word boundaries before and after
 				if isWordBoundaryBefore(formatted, i) && isWordBoundaryAfter(formatted, j) {
-					// Check if this matches the current short year
-					if formatted[i:i+2] == currentShortYear {
+					// Match when the 2-digit run equals the CE reference short year
+					// (production case) OR when the entire input is itself a 2-digit
+					// year (direct-call case: the caller passed only the year).
+					if formatted[i:i+2] == currentShortYear || len(formatted) == 2 {
 						resultBuilder.Write(shortYearStr)
 						i = j
 						continue
@@ -527,18 +544,50 @@ func formatWithEraAdjustments(t Time, locale string, layout string, era *Era) st
 		eraYearStr = strconv.Itoa(eraYear)
 	}
 
-	// Apply prefix and suffix
-	var result strings.Builder
-	if era.format != nil && era.format.Prefix != "" {
-		result.WriteString(era.format.Prefix)
-	}
-	result.WriteString(eraYearStr)
-	if era.format != nil && era.format.Suffix != "" {
-		result.WriteString(era.format.Suffix)
+	// Compose the decorated year string: optional prefix + era year + optional suffix.
+	// This is the string that will replace the CE year in the formatted output.
+	var decorated string
+	if era.format != nil {
+		decorated = era.format.Prefix + eraYearStr + era.format.Suffix
+	} else {
+		decorated = eraYearStr
 	}
 
-	// Replace the year in the formatted output
-	return replaceYearInFormattedWithEraString(baseFormatted, eraYearStr)
+	// Replace the year in the formatted output with the decorated era year string.
+	return replaceYearInFormattedWithString(baseFormatted, decorated)
+}
+
+// replaceYearInFormattedWithString replaces year numbers in formatted output with
+// an arbitrary string (e.g., "PRE2124POST"). It mirrors replaceYearInFormatted's
+// 4-digit year scan but writes `replacement` instead of a numeric year string,
+// so prefix/suffix decorations round-trip correctly through the replacement.
+func replaceYearInFormattedWithString(formatted string, replacement string) string {
+	// Use pooled builder for final result.
+	resultBuilder := builderPool.Get(len(formatted) + len(replacement))
+	defer builderPool.Put(resultBuilder)
+
+	i := 0
+	for i < len(formatted) {
+		// Check for 4-digit year pattern (word boundary)
+		if i+4 <= len(formatted) && formatted[i] >= '0' && formatted[i] <= '9' {
+			j := i
+			for j < i+4 && j < len(formatted) && formatted[j] >= '0' && formatted[j] <= '9' {
+				j++
+			}
+			if j-i == 4 {
+				if isWordBoundaryBefore(formatted, i) && isWordBoundaryAfter(formatted, j) {
+					resultBuilder.WriteString(replacement)
+					i = j
+					continue
+				}
+			}
+		}
+
+		resultBuilder.WriteByte(formatted[i])
+		i++
+	}
+
+	return resultBuilder.String()
 }
 
 // formatEraYear formats the era year according to the format settings.
@@ -571,26 +620,6 @@ func formatEraYear(year int, format *EraFormat) string {
 		// Default: use as-is
 		return yearStr
 	}
-}
-
-// replaceYearInFormattedWithEraString replaces year numbers with era-specific string.
-func replaceYearInFormattedWithEraString(formatted string, eraYearStr string) string {
-	// Use the standard replace function but with era year string
-	return replaceYearInFormatted(formatted, parseEraYear(eraYearStr))
-}
-
-// parseEraYear parses an era year string to an integer.
-func parseEraYear(s string) int {
-	// Handle Japanese "元" (gannen/first year)
-	if s == "元" {
-		return 1
-	}
-
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		return 0
-	}
-	return n
 }
 
 // EraFormatStats returns formatting statistics for an era.

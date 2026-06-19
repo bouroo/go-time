@@ -769,3 +769,34 @@ func TestParseRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+// TestParseThai_WrapsParseError verifies that ParseThai wraps the underlying
+// stdtime error in a *ParseError so callers can use IsParseError.
+//
+// Bug #3: time.go ParseThai returns the raw stdtime error instead of
+// wrapping it in newParseError like ParseWithEra does. IsParseError(err)
+// currently returns false even on parse failure.
+func TestParseThai_WrapsParseError(t *testing.T) {
+	_, err := ParseThai("2006-01-02", "not-a-date")
+	if err == nil {
+		t.Fatal("ParseThai with invalid input returned nil err; want a wrapped ParseError")
+	}
+	if !IsParseError(err) {
+		t.Errorf("IsParseError(err) = false, want true; raw err = %v (%T)", err, err)
+	}
+}
+
+// TestParseThaiInLocation_WrapsParseError verifies that ParseThaiInLocation
+// wraps the underlying stdtime error in a *ParseError so callers can use
+// IsParseError.
+//
+// Bug #3: same as above for ParseThaiInLocation.
+func TestParseThaiInLocation_WrapsParseError(t *testing.T) {
+	_, err := ParseThaiInLocation("2006-01-02", "not-a-date", stdtime.UTC)
+	if err == nil {
+		t.Fatal("ParseThaiInLocation with invalid input returned nil err; want a wrapped ParseError")
+	}
+	if !IsParseError(err) {
+		t.Errorf("IsParseError(err) = false, want true; raw err = %v (%T)", err, err)
+	}
+}
