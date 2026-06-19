@@ -15,7 +15,9 @@
 //
 // The global era cache (globalEraCache) uses sync.Map for lock-free reads
 // and atomic operations for writes, ensuring optimal performance under
-// concurrent access.
+// concurrent access. The cache is a bounded LRU: the underlying sync.Map
+// stays at or below the configured max size, and re-setting the same key
+// does not duplicate entries.
 package time
 
 import (
@@ -326,6 +328,7 @@ func ParseInLocationWithEra(layout, value string, loc *stdtime.Location, era *Er
 // ParseThai parses a time string that may contain Thai month and day names.
 // It automatically detects whether the year is in BE or CE format based on
 // proximity to the current year, and returns a Time with the detected era.
+// Returns a ParseError if parsing fails.
 func ParseThai(layout, value string) (Time, error) {
 	converted := replaceThaiMonthNames(value)
 	converted = replaceThaiDayNames(converted)
@@ -349,6 +352,7 @@ func ParseThai(layout, value string) (Time, error) {
 // ParseThaiInLocation parses a time string with Thai month and day names
 // in a specific location. It automatically detects whether the year is in
 // BE or CE format based on proximity to the current year.
+// Returns a ParseError if parsing fails.
 func ParseThaiInLocation(layout, value string, loc *stdtime.Location) (Time, error) {
 	converted := replaceThaiMonthNames(value)
 	converted = replaceThaiDayNames(converted)
