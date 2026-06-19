@@ -75,12 +75,12 @@ import (
 //	    },
 //	})
 type Era struct {
-	name      string
-	offset    int
 	startDate stdtime.Time
 	endDate   stdtime.Time
+	name      string
 	family    string
 	locale    string
+	offset    int
 	format    *EraFormat
 	names     map[string]string
 	formatter EraFormatterFunc
