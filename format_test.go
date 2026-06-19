@@ -364,6 +364,92 @@ func TestFormatLocaleWithTime(t *testing.T) {
 	}
 }
 
+// TestReplaceYearInFormatted_PadsSingleDigitEraYearToFourDigits verifies that
+// when replaceYearInFormatted is given a single-digit eraYear (7), the resulting
+// 4-digit year string is "0007" — zero-padded on the LEFT, not the right.
+//
+// Bug #1: format.go pads by appending '0' to the END of the digit string,
+// so eraYear=7 currently produces "7000" instead of "0007".
+func TestReplaceYearInFormatted_PadsSingleDigitEraYearToFourDigits(t *testing.T) {
+	got := replaceYearInFormatted("2006", 7)
+	if got != "0007" {
+		t.Errorf("replaceYearInFormatted(\"2006\", 7) = %q, want %q", got, "0007")
+	}
+}
+
+// TestReplaceYearInFormatted_PadsTwoDigitEraYearToFourDigits verifies that
+// when replaceYearInFormatted is given a two-digit eraYear (42), the resulting
+// 4-digit year string is "0042" — zero-padded on the LEFT.
+//
+// Bug #1: format.go appends '0' to the END, so eraYear=42 currently produces
+// "4200" instead of "0042".
+func TestReplaceYearInFormatted_PadsTwoDigitEraYearToFourDigits(t *testing.T) {
+	got := replaceYearInFormatted("2006", 42)
+	if got != "0042" {
+		t.Errorf("replaceYearInFormatted(\"2006\", 42) = %q, want %q", got, "0042")
+	}
+}
+
+// TestReplaceYearInFormatted_ShortYearPadsSingleDigit verifies that the
+// short-year branch pads eraYear%100 to two digits with a leading zero.
+// With reference year 2007 (short year "07"), input "06" with eraYear=7
+// must produce "07" — not "70".
+//
+// Bug #1: format.go appends '0' to the END of shortYearStr, so short year
+// is currently "70" instead of "07".
+func TestReplaceYearInFormatted_ShortYearPadsSingleDigit(t *testing.T) {
+	SetYearFormatReferenceDate(stdtime.Date(2007, 1, 1, 0, 0, 0, 0, stdtime.UTC))
+	defer SetYearFormatReferenceDate(stdtime.Time{})
+
+	got := replaceYearInFormatted("06", 7)
+	if got != "07" {
+		t.Errorf("replaceYearInFormatted(\"06\", 7) with ref 2007 = %q, want %q", got, "07")
+	}
+}
+
+// TestReplaceYearInFormatted_ThreeDigitNumberNotMisReplacedAsShortYear
+// documents and guards the short-year branch: when a 3-digit run contains
+// the reference short year as its last two digits (e.g. "106" with ref "06"),
+// the "06" must NOT be replaced because the char before it ('1') is a digit —
+// i.e. isWordBoundaryBefore is false at that position.
+//
+// This is a regression guard, not a known bug; if the guard ever breaks,
+// the test becomes RED.
+func TestReplaceYearInFormatted_ThreeDigitNumberNotMisReplacedAsShortYear(t *testing.T) {
+	SetYearFormatReferenceDate(stdtime.Date(2006, 1, 1, 0, 0, 0, 0, stdtime.UTC))
+	defer SetYearFormatReferenceDate(stdtime.Time{})
+
+	got := replaceYearInFormatted("106", 7)
+	if got != "106" {
+		t.Errorf("replaceYearInFormatted(\"106\", 7) with ref 2006 = %q, want %q (short-year branch must NOT fire inside a longer digit run)", got, "106")
+	}
+}
+
+// TestFormatWithEraStyle_AppliesPrefixAndSuffix verifies that an era with
+// Prefix and Suffix in its EraFormat has both applied in the formatted output.
+//
+// Bug #2: formatWithEraAdjustments builds a result with prefix/year/suffix
+// then discards it, returning only the year-replaced base string. The prefix
+// and suffix never appear.
+func TestFormatWithEraStyle_AppliesPrefixAndSuffix(t *testing.T) {
+	era := RegisterEraWithOptions(EraOptions{
+		Name:   "PFXSFX",
+		Offset: 100,
+		Format: &EraFormat{Prefix: "PRE", Suffix: "POST", YearDigits: 4},
+	})
+
+	tm := Date(2024, 1, 1, 0, 0, 0, 0, stdtime.UTC).InEra(era)
+
+	got := tm.FormatWithEraStyle("", "2006")
+
+	if !strings.Contains(got, "PRE") {
+		t.Errorf("FormatWithEraStyle should contain prefix %q, got %q", "PRE", got)
+	}
+	if !strings.Contains(got, "POST") {
+		t.Errorf("FormatWithEraStyle should contain suffix %q, got %q", "POST", got)
+	}
+}
+
 // TestFormatCenturyBoundary tests formatting around century boundaries
 func TestFormatCenturyBoundary(t *testing.T) {
 	tests := []struct {

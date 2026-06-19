@@ -727,3 +727,35 @@ func TestParseInLocationMatchesStdlib(t *testing.T) {
 		})
 	}
 }
+
+// TestGetEraParsingStats_AlwaysZero_Bug documents that GetEraParsingStats
+// always reports zero counters even after many successful parses.
+//
+// Bug #4: time.go declares totalParsed/ceParsed/beParsed/otherEraParsed/
+// localeDetected/yearDetected/localeYearDetected but never increments them
+// from any parse path. The API is dead. The planned fix is to REMOVE the
+// API rather than wire it; this test will be deleted in the fix step.
+func TestGetEraParsingStats_AlwaysZero_Bug(t *testing.T) {
+	ResetEraParsingStats()
+
+	// Exercise every public parse entry point several times.
+	for i := 0; i < 5; i++ {
+		if _, err := ParseThai("2006-01-02", "2567-01-02"); err != nil {
+			t.Fatalf("ParseThai returned err: %v", err)
+		}
+		if _, err := ParseWithEra("2006-01-02", "2567-01-02", BE()); err != nil {
+			t.Fatalf("ParseWithEra returned err: %v", err)
+		}
+		if _, err := ParseWithLocale("2006-01-02", "2567-01-02", LocaleThTH); err != nil {
+			t.Fatalf("ParseWithLocale returned err: %v", err)
+		}
+		if _, err := Parse("2006-01-02", "2024-01-02"); err != nil {
+			t.Fatalf("Parse returned err: %v", err)
+		}
+	}
+
+	stats := GetEraParsingStats()
+	if stats.TotalParsed <= 0 {
+		t.Errorf("GetEraParsingStats TotalParsed = %d, want > 0; counters are never incremented (Bug #4)", stats.TotalParsed)
+	}
+}
