@@ -544,18 +544,50 @@ func formatWithEraAdjustments(t Time, locale string, layout string, era *Era) st
 		eraYearStr = strconv.Itoa(eraYear)
 	}
 
-	// Apply prefix and suffix
-	var result strings.Builder
-	if era.format != nil && era.format.Prefix != "" {
-		result.WriteString(era.format.Prefix)
-	}
-	result.WriteString(eraYearStr)
-	if era.format != nil && era.format.Suffix != "" {
-		result.WriteString(era.format.Suffix)
+	// Compose the decorated year string: optional prefix + era year + optional suffix.
+	// This is the string that will replace the CE year in the formatted output.
+	var decorated string
+	if era.format != nil {
+		decorated = era.format.Prefix + eraYearStr + era.format.Suffix
+	} else {
+		decorated = eraYearStr
 	}
 
-	// Replace the year in the formatted output
-	return replaceYearInFormattedWithEraString(baseFormatted, eraYearStr)
+	// Replace the year in the formatted output with the decorated era year string.
+	return replaceYearInFormattedWithString(baseFormatted, decorated)
+}
+
+// replaceYearInFormattedWithString replaces year numbers in formatted output with
+// an arbitrary string (e.g., "PRE2124POST"). It mirrors replaceYearInFormatted's
+// 4-digit year scan but writes `replacement` instead of a numeric year string,
+// so prefix/suffix decorations round-trip correctly through the replacement.
+func replaceYearInFormattedWithString(formatted string, replacement string) string {
+	// Use pooled builder for final result.
+	resultBuilder := builderPool.Get(len(formatted) + len(replacement))
+	defer builderPool.Put(resultBuilder)
+
+	i := 0
+	for i < len(formatted) {
+		// Check for 4-digit year pattern (word boundary)
+		if i+4 <= len(formatted) && formatted[i] >= '0' && formatted[i] <= '9' {
+			j := i
+			for j < i+4 && j < len(formatted) && formatted[j] >= '0' && formatted[j] <= '9' {
+				j++
+			}
+			if j-i == 4 {
+				if isWordBoundaryBefore(formatted, i) && isWordBoundaryAfter(formatted, j) {
+					resultBuilder.WriteString(replacement)
+					i = j
+					continue
+				}
+			}
+		}
+
+		resultBuilder.WriteByte(formatted[i])
+		i++
+	}
+
+	return resultBuilder.String()
 }
 
 // formatEraYear formats the era year according to the format settings.
