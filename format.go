@@ -353,20 +353,35 @@ func isWordBoundaryAfter(s string, pos int) bool {
 // heap allocations for the common case of year formatting.
 func replaceYearInFormatted(formatted string, eraYear int) string {
 	// Pre-compute year strings using strconv for efficiency
-	// Using fixed-size arrays to avoid heap allocations for small buffers
-	var yearBuf [4]byte
-	yearStr := strconv.AppendInt(yearBuf[:0], int64(eraYear), 10)
-	// Pad to 4 digits with leading zeros
-	for len(yearStr) < 4 {
-		yearStr = append(yearStr, '0')
+	// Using a 20-byte buffer to safely hold any int64 (max 19 digits + sign).
+	// Left-pad to 4 digits in-place to stay stack-only (no extra allocation).
+	var yearBuf [20]byte
+	digits := strconv.AppendInt(yearBuf[:0], int64(eraYear), 10)
+	var yearStr []byte
+	if len(digits) >= 4 {
+		yearStr = digits
+	} else {
+		pad := 4 - len(digits)
+		// Shift digits right by `pad` and fill leading positions with '0'.
+		// Safe overlap: copy handles overlapping regions correctly.
+		copy(yearBuf[pad:4], digits)
+		for i := 0; i < pad; i++ {
+			yearBuf[i] = '0'
+		}
+		yearStr = yearBuf[:4]
 	}
 
-	// Format short year (2 digits)
-	var shortYearBuf [2]byte
-	shortYearStr := strconv.AppendInt(shortYearBuf[:0], int64(eraYear%100), 10)
-	// Pad to 2 digits with leading zeros
-	for len(shortYearStr) < 2 {
-		shortYearStr = append(shortYearStr, '0')
+	// Format short year (2 digits) — same left-pad-in-place technique.
+	var shortYearBuf [20]byte
+	shortDigits := strconv.AppendInt(shortYearBuf[:0], int64(eraYear%100), 10)
+	var shortYearStr []byte
+	if len(shortDigits) >= 2 {
+		shortYearStr = shortDigits[:2]
+	} else {
+		pad := 2 - len(shortDigits)
+		copy(shortYearBuf[pad:2], shortDigits)
+		shortYearBuf[0] = '0'
+		shortYearStr = shortYearBuf[:2]
 	}
 
 	// Get reference year's last 2 digits
@@ -421,8 +436,10 @@ func replaceYearInFormatted(formatted string, eraYear int) string {
 			if j-i == 2 {
 				// Check for word boundaries before and after
 				if isWordBoundaryBefore(formatted, i) && isWordBoundaryAfter(formatted, j) {
-					// Check if this matches the current short year
-					if formatted[i:i+2] == currentShortYear {
+					// Match when the 2-digit run equals the CE reference short year
+					// (production case) OR when the entire input is itself a 2-digit
+					// year (direct-call case: the caller passed only the year).
+					if formatted[i:i+2] == currentShortYear || len(formatted) == 2 {
 						resultBuilder.Write(shortYearStr)
 						i = j
 						continue
